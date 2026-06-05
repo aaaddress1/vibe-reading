@@ -152,12 +152,12 @@ body {
 
 .pdf-pane {
   flex: 0 0 58%;
-  overflow-y: auto;
+  overflow: auto;
   background: #0f0f10;
   padding: 16px;
   display: flex;
   flex-direction: column;
-  align-items: center;
+  align-items: safe center;   /* centre, but stay scrollable when wider than pane */
 }
 .pdf-inner { display: flex; flex-direction: column; gap: 14px; }
 

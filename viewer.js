@@ -87,6 +87,7 @@ document.addEventListener('DOMContentLoaded', async () => {
   setupSelectionAsk();
   setupReverseLocate();
   setupZoom();
+  setupKeyboardScroll();
 
   els.translateBtn.addEventListener('click', () => startTranslation(true));
   els.stopBtn.addEventListener('click', () => {
@@ -300,19 +301,46 @@ function updateZoomLabel() {
   if (els.zoomLabel) els.zoomLabel.textContent = Math.round(zoom * 100) + '%';
 }
 
-function setZoom(z) {
+// Zoom around a focal point. The anchor is captured as a specific PAGE plus a
+// fraction within that page (measured from real element rects), so the constant
+// inter-page gaps/padding don't distort it — after re-render the same page point
+// is placed back under the focal Y. Fixes both figure drift and wrong-page jumps.
+function setZoom(z, focalClientY) {
   if (!pdfDoc) return;
+  const fcY = (focalClientY != null)
+    ? focalClientY
+    : els.pdfPane.getBoundingClientRect().top + els.pdfPane.clientHeight / 2;
+
+  // capture which page + intra-page fraction sits at the focal Y (old layout)
+  let anchorPage = null, anchorFy = 0.5;
+  for (const k in pageWraps) {
+    const r = pageWraps[k].wrap.getBoundingClientRect();
+    if (fcY >= r.top && fcY <= r.bottom) { anchorPage = Number(k); anchorFy = (fcY - r.top) / r.height; break; }
+  }
+  if (anchorPage == null) {              // focal in a gap → use nearest page centre
+    let bd = Infinity;
+    for (const k in pageWraps) {
+      const r = pageWraps[k].wrap.getBoundingClientRect();
+      const d = Math.abs((r.top + r.bottom) / 2 - fcY);
+      if (d < bd) { bd = d; anchorPage = Number(k); anchorFy = 0.5; }
+    }
+  }
+
   zoom = Math.max(0.4, Math.min(4, z));
   renderScale = baseScale * zoom;
   updateZoomLabel();
-  const ratio = els.pdfPane.scrollTop / Math.max(1, els.pdfInner.scrollHeight);
+
   clearTimeout(rerenderT);
   rerenderT = setTimeout(async () => {
     setIndeterminate(true);
     setStatus('縮放重繪中…');
     await renderPages(false);
     setIndeterminate(false);
-    els.pdfPane.scrollTop = ratio * els.pdfInner.scrollHeight;   // keep view roughly anchored
+    const pg = pageWraps[anchorPage];
+    if (pg) {
+      const r = pg.wrap.getBoundingClientRect();
+      els.pdfPane.scrollTop += (r.top + anchorFy * r.height) - fcY;   // put the same point back under the cursor
+    }
     setStatus('完成');
   }, 130);
 }
@@ -322,12 +350,37 @@ function setupZoom() {
   els.zoomOut.addEventListener('click', () => setZoom(zoom / 1.2));
   els.zoomFit.addEventListener('click', () => setZoom(1));
   // Ctrl+wheel / trackpad pinch zooms ONLY the PDF pane (preventDefault stops
-  // the browser from zooming the whole page).
+  // the browser from zooming the whole page), anchored at the cursor.
   els.pdfPane.addEventListener('wheel', (e) => {
     if (!e.ctrlKey) return;
     e.preventDefault();
-    setZoom(zoom * (e.deltaY < 0 ? 1.12 : 1 / 1.12));
+    setZoom(zoom * (e.deltaY < 0 ? 1.12 : 1 / 1.12), e.clientY);
   }, { passive: false });
+}
+
+// Arrow keys / PageUp-Down / Home-End scroll the PDF pane (the div has no native
+// keyboard scrolling like Chrome's built-in viewer does).
+function setupKeyboardScroll() {
+  document.addEventListener('keydown', (e) => {
+    const t = e.target;
+    if (t && (t.tagName === 'INPUT' || t.tagName === 'TEXTAREA' || t.tagName === 'SELECT' || t.isContentEditable)) return;
+    if (els.askModal.style.display !== 'none') return;   // modal/Esc handles its own keys
+
+    const pane = els.pdfPane;
+    const line = 90, page = pane.clientHeight * 0.9;
+    switch (e.key) {
+      case 'ArrowDown':  pane.scrollTop  += line; break;
+      case 'ArrowUp':    pane.scrollTop  -= line; break;
+      case 'ArrowRight': pane.scrollLeft += line; break;
+      case 'ArrowLeft':  pane.scrollLeft -= line; break;
+      case 'PageDown':   pane.scrollTop  += page; break;
+      case 'PageUp':     pane.scrollTop  -= page; break;
+      case 'Home':       pane.scrollTop   = 0; break;
+      case 'End':        pane.scrollTop   = pane.scrollHeight; break;
+      default: return;
+    }
+    e.preventDefault();
+  });
 }
 
 function extractParagraphs(items) {
