@@ -232,29 +232,56 @@ function extractParagraphs(items) {
     return Math.abs(dy) > 2 ? dy : a.transform[4] - b.transform[4];
   });
 
-  const lines = [];
+  // group items into visual lines (same baseline ±3)
+  const rawLines = [];
   let line = { y: its[0].transform[5], items: [its[0]] };
   for (let i = 1; i < its.length; i++) {
     const y = its[i].transform[5];
     if (Math.abs(y - line.y) <= 3) line.items.push(its[i]);
-    else { lines.push(line); line = { y, items: [its[i]] }; }
+    else { rawLines.push(line); line = { y, items: [its[i]] }; }
   }
-  lines.push(line);
+  rawLines.push(line);
 
-  const gaps = lines.slice(1).map((l, i) => Math.abs(lines[i].y - l.y)).sort((a, b) => a - b);
-  const median = gaps[Math.floor(gaps.length / 2)] || 14;
+  // compute per-line geometry (left/right edges, text)
+  const L = rawLines.map(l => {
+    const starts = l.items.map(it => it.transform[4]);
+    const ends   = l.items.map(it => it.transform[4] + (it.width || 0));
+    return {
+      y: l.y,
+      startX: Math.min(...starts),
+      endX: Math.max(...ends),
+      items: l.items,
+      text: l.items.map(it => it.str).join(' ').replace(/\s+/g, ' ').trim(),
+    };
+  }).filter(l => l.text);
+  if (!L.length) return [];
 
+  // approximate column margins & typical line height
+  const leftEdge  = Math.min(...L.map(l => l.startX));
+  const rightEdge = Math.max(...L.map(l => l.endX));
+  const colWidth  = Math.max(1, rightEdge - leftEdge);
+  const gaps = L.slice(1).map((l, i) => Math.abs(L[i].y - l.y)).sort((a, b) => a - b);
+  const lineH = gaps[Math.floor(gaps.length / 2)] || 14;
+
+  const indentTol = Math.max(8, colWidth * 0.02);   // first-line indent
+  const shortTol  = Math.max(12, colWidth * 0.12);   // ragged last line of a paragraph
+
+  // split into paragraphs using vertical gap + indent + short-previous-line
   const groups = [];
-  let cur = [lines[0]];
-  for (let i = 1; i < lines.length; i++) {
-    if (Math.abs(lines[i - 1].y - lines[i].y) > median * 1.8) { groups.push(cur); cur = []; }
-    cur.push(lines[i]);
+  let g = [L[0]];
+  for (let i = 1; i < L.length; i++) {
+    const prev = L[i - 1], cur = L[i];
+    const bigGap    = Math.abs(prev.y - cur.y) > lineH * 1.6;
+    const indented  = cur.startX > leftEdge + indentTol;
+    const prevShort = prev.endX < rightEdge - shortTol;
+    if (bigGap || indented || prevShort) { groups.push(g); g = []; }
+    g.push(cur);
   }
-  if (cur.length) groups.push(cur);
+  if (g.length) groups.push(g);
 
   return groups.map(grp => {
     const flat = grp.flatMap(l => l.items);
-    const text = grp.map(l => l.items.map(it => it.str).join(' ')).join(' ').replace(/\s+/g, ' ').trim();
+    const text = grp.map(l => l.text).join(' ').replace(/\s+/g, ' ').trim();
     let x0 = Infinity, y0 = Infinity, x1 = -Infinity, y1 = -Infinity;
     for (const it of flat) {
       const x = it.transform[4], y = it.transform[5];
