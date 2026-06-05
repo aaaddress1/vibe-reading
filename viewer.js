@@ -224,7 +224,11 @@ async function loadAndRenderPdf() {
 }
 
 function extractParagraphs(items) {
-  const its = items.filter(it => it.str.trim());
+  // Keep non-empty, horizontal text only — drop rotated items such as the
+  // vertical "arXiv:…" watermark, which otherwise corrupts margin geometry.
+  const its = items.filter(it =>
+    it.str.trim() &&
+    Math.abs(it.transform[1]) < 2 && Math.abs(it.transform[2]) < 2);
   if (!its.length) return [];
 
   its.sort((a, b) => {
@@ -256,15 +260,19 @@ function extractParagraphs(items) {
   }).filter(l => l.text);
   if (!L.length) return [];
 
-  // approximate column margins & typical line height
-  const leftEdge  = Math.min(...L.map(l => l.startX));
-  const rightEdge = Math.max(...L.map(l => l.endX));
-  const colWidth  = Math.max(1, rightEdge - leftEdge);
+  // Dominant left margin = most common startX (robust to outliers like
+  // footnotes/indents); right margin = widest line. Avoids treating every
+  // body line as "indented" when a stray element sits far to the left.
+  const startBins = {};
+  for (const l of L) { const k = Math.round(l.startX / 3) * 3; startBins[k] = (startBins[k] || 0) + 1; }
+  const leftMargin = Number(Object.entries(startBins).sort((a, b) => b[1] - a[1])[0][0]);
+  const rightEdge  = Math.max(...L.map(l => l.endX));
+  const colWidth   = Math.max(1, rightEdge - leftMargin);
   const gaps = L.slice(1).map((l, i) => Math.abs(L[i].y - l.y)).sort((a, b) => a - b);
   const lineH = gaps[Math.floor(gaps.length / 2)] || 14;
 
-  const indentTol = Math.max(8, colWidth * 0.02);   // first-line indent
-  const shortTol  = Math.max(12, colWidth * 0.12);   // ragged last line of a paragraph
+  const indentTol = Math.max(12, colWidth * 0.025);  // first-line indent
+  const shortTol  = Math.max(16, colWidth * 0.15);   // ragged last line of a paragraph
 
   // split into paragraphs using vertical gap + indent + short-previous-line
   const groups = [];
@@ -272,7 +280,7 @@ function extractParagraphs(items) {
   for (let i = 1; i < L.length; i++) {
     const prev = L[i - 1], cur = L[i];
     const bigGap    = Math.abs(prev.y - cur.y) > lineH * 1.6;
-    const indented  = cur.startX > leftEdge + indentTol;
+    const indented  = cur.startX > leftMargin + indentTol;
     const prevShort = prev.endX < rightEdge - shortTol;
     if (bigGap || indented || prevShort) { groups.push(g); g = []; }
     g.push(cur);
