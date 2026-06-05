@@ -32,6 +32,7 @@ function langName(code) {
 
 // ─── DOM refs ─────────────────────────────────────────────────────────────────
 const els = {
+  appVer:        document.getElementById('appVer'),
   pdfSource:     document.getElementById('pdfSource'),
   srcLangInfo:   document.getElementById('srcLangInfo'),
   zoomIn:        document.getElementById('zoomIn'),
@@ -81,6 +82,7 @@ let segEls        = [];     // paragraph index -> right-pane segment element
 
 // ─── Init ─────────────────────────────────────────────────────────────────────
 document.addEventListener('DOMContentLoaded', async () => {
+  try { els.appVer.textContent = 'v' + chrome.runtime.getManifest().version; } catch (_) {}
   populateTargetSelect();
   setupFontControl();
   setupDivider();
@@ -284,7 +286,11 @@ async function renderPages(computeParagraphs) {
       console.warn('[PDF翻譯] 文字層渲染失敗（不影響翻譯）：', e);
     }
 
-    pageWraps[p] = { wrap, viewport };
+    pageWraps[p] = {
+      wrap, canvas, textLayer, viewport,
+      w1: viewport.width  / renderScale,   // intrinsic (scale-1) dimensions
+      h1: viewport.height / renderScale,
+    };
 
     if (computeParagraphs) {
       for (const para of extractParagraphs(content.items)) {
@@ -330,19 +336,71 @@ function setZoom(z, focalClientY) {
   renderScale = baseScale * zoom;
   updateZoomLabel();
 
+  // 1) Instant, smooth: stretch existing canvases via CSS and rescale the text
+  //    layer through --scale-factor (its span positions are in scale-1 units,
+  //    so they follow the variable). No re-rasterising → no flash, no lag.
+  applyDisplayScale(renderScale);
+  anchorScroll(anchorPage, anchorFy, fcY);
+
+  // 2) After the gesture settles, re-rasterise in place to sharpen (no DOM
+  //    rebuild → no flash, no scroll jump). Visible pages are sharpened first.
   clearTimeout(rerenderT);
-  rerenderT = setTimeout(async () => {
-    setIndeterminate(true);
-    setStatus('縮放重繪中…');
-    await renderPages(false);
-    setIndeterminate(false);
-    const pg = pageWraps[anchorPage];
-    if (pg) {
-      const r = pg.wrap.getBoundingClientRect();
-      els.pdfPane.scrollTop += (r.top + anchorFy * r.height) - fcY;   // put the same point back under the cursor
+  rerenderT = setTimeout(() => sharpenPages(), 200);
+}
+
+let sharpenGen = 0;
+async function sharpenPages() {
+  if (!pdfDoc) return;
+  const gen = ++sharpenGen;
+  const dpr = window.devicePixelRatio || 1;
+
+  // order: pages currently in view first, then the rest
+  const paneRect = els.pdfPane.getBoundingClientRect();
+  const vis = [], rest = [];
+  for (let p = 1; p <= pdfDoc.numPages; p++) {
+    const pg = pageWraps[p]; if (!pg) continue;
+    const r = pg.wrap.getBoundingClientRect();
+    (r.bottom > paneRect.top && r.top < paneRect.bottom ? vis : rest).push(p);
+  }
+
+  for (const p of vis.concat(rest)) {
+    if (gen !== sharpenGen) return;           // a newer zoom superseded us
+    const pg = pageWraps[p]; if (!pg) continue;
+    const page = await pdfDoc.getPage(p);
+    if (gen !== sharpenGen) return;
+    const sc = renderScale;
+    const renderVp = page.getViewport({ scale: sc * dpr });
+    pg.canvas.width  = renderVp.width;
+    pg.canvas.height = renderVp.height;
+    pg.canvas.style.width  = (pg.w1 * sc) + 'px';
+    pg.canvas.style.height = (pg.h1 * sc) + 'px';
+    await page.render({ canvasContext: pg.canvas.getContext('2d'), viewport: renderVp }).promise;
+    pg.viewport = page.getViewport({ scale: sc });   // keep locate()/zoom anchor accurate
+  }
+}
+
+// Live CSS resize of all pages (cheap; bitmap is GPU-scaled until re-rasterised)
+function applyDisplayScale(scale) {
+  for (const k in pageWraps) {
+    const pg = pageWraps[k];
+    const w = pg.w1 * scale, h = pg.h1 * scale;
+    pg.wrap.style.width = w + 'px';
+    pg.wrap.style.height = h + 'px';
+    if (pg.canvas) { pg.canvas.style.width = w + 'px'; pg.canvas.style.height = h + 'px'; }
+    if (pg.textLayer) {
+      pg.textLayer.style.width = w + 'px';
+      pg.textLayer.style.height = h + 'px';
+      pg.textLayer.style.setProperty('--scale-factor', scale);
     }
-    setStatus('完成');
-  }, 130);
+  }
+}
+
+// Keep a given page + intra-page fraction anchored under the focal screen Y
+function anchorScroll(page, fy, fcY) {
+  const pg = pageWraps[page];
+  if (!pg) return;
+  const r = pg.wrap.getBoundingClientRect();
+  els.pdfPane.scrollTop += (r.top + fy * r.height) - fcY;
 }
 
 function setupZoom() {

@@ -70,6 +70,7 @@ body {
 .zoom-label { font-size: 11px; color: var(--muted); min-width: 40px; text-align: center; }
 .logo { font-size: 18px; }
 .title { font-weight: 600; font-size: 14px; white-space: nowrap; color: var(--accent); }
+.app-ver { font-size: 10px; color: var(--faint); align-self: flex-end; padding-bottom: 2px; }
 .repo-link {
   font-size: 11px; color: var(--muted); text-decoration: none;
   border: 1px solid var(--border); border-radius: 12px; padding: 2px 9px;
