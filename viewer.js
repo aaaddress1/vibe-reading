@@ -72,6 +72,7 @@ let renderScale   = 1;
 let detectedSource = 'en';
 let selectedText  = '';
 let summaryDone   = false;
+let summaryObj    = null;   // generated AI summary, reused as Q&A context
 let segEls        = [];     // paragraph index -> right-pane segment element
 
 // ─── Init ─────────────────────────────────────────────────────────────────────
@@ -519,6 +520,7 @@ async function generateSummary() {
       obj = JSON.parse(raw.replace(/^[^{]*/, '').replace(/[^}]*$/, ''));
     }
 
+    summaryObj = obj;          // reused as global context for the ask-AI feature
     renderSummary(obj);
     session.destroy();
   } catch (e) {
@@ -743,10 +745,24 @@ function askSwap(running) {
   els.askStop.style.display = running ? '' : 'none';
 }
 
+// Locate the paragraph a selection came from, by matching its opening words
+function findParagraphByText(snippet) {
+  const norm = s => s.replace(/\s+/g, ' ').trim().toLowerCase();
+  const key = norm(snippet).slice(0, 40);
+  if (key.length < 6) return -1;
+  for (let i = 0; i < paragraphs.length; i++) {
+    if (norm(paragraphs[i].text).includes(key)) return i;
+  }
+  return -1;
+}
+
+const clamp = (s, n) => (s && s.length > n ? s.slice(0, n) + '…' : (s || ''));
+
 async function askNano() {
   if (askAbort) return; // already answering
   if (!('LanguageModel' in self)) { els.askAnswer.textContent = 'Gemini Nano 不可用，無法提問。'; return; }
   const question = els.askInput.value.trim() || '請用繁體中文解釋這段文字的意思與相關背景。';
+  const snippet = els.askSel.textContent;
 
   askAbort = new AbortController();
   const { signal } = askAbort;
@@ -755,9 +771,30 @@ async function askNano() {
 
   try {
     askSession = await LanguageModel.create({
-      initialPrompts: [{ role: 'system', content: '你是研究助理。使用者會提供一段論文文字與問題，請根據該文字用繁體中文回答；若需補充常識可適度補充，但須註明。' }],
+      initialPrompts: [{ role: 'system', content: '你是研究助理。使用者會閱讀一篇論文並反白其中一段文字提問。請優先依據提供的「論文摘要」與「前後文」作答，用繁體中文回答；若需補充常識可適度補充並註明。' }],
     });
-    const prompt = `【文字片段】\n${els.askSel.textContent}\n\n【問題】\n${question}`;
+
+    // Build layered context within Nano's small context window:
+    // global (AI summary) + local (neighbouring paragraphs) + the selection.
+    const parts = [];
+    if (summaryObj) {
+      parts.push(
+        '【論文摘要】\n' +
+        `背景：${clamp(summaryObj.background, 220)}\n` +
+        `相關研究：${clamp(summaryObj.relatedWork, 220)}\n` +
+        `亮點：${clamp(summaryObj.highlights, 220)}\n` +
+        `總結：${clamp(summaryObj.conclusion, 220)}`);
+    }
+    const idx = findParagraphByText(snippet);
+    if (idx >= 0) {
+      const ctx = [paragraphs[idx - 1], paragraphs[idx], paragraphs[idx + 1]]
+        .filter(Boolean).map(p => p.text).join('\n');
+      parts.push('【反白段落的前後文】\n' + clamp(ctx, 1500));
+    }
+    parts.push('【使用者反白的片段】\n' + clamp(snippet, 1000));
+    parts.push('【問題】\n' + question);
+
+    const prompt = parts.join('\n\n');
     const stream = askSession.promptStreaming(prompt, { signal });
     els.askAnswer.textContent = '';
     for await (const chunk of stream) {
