@@ -2,18 +2,6 @@
 
 const MENU_ID = 'translate-pdf-fulltext';
 
-// URLs where the right-click item should appear. arxiv serves PDFs at /pdf/<id>
-// with no .pdf extension, so it needs its own pattern.
-const PDF_PATTERNS = [
-  '*://*/*.pdf',
-  '*://*/*.pdf?*',
-  '*://*/*.PDF',
-  '*://arxiv.org/pdf/*',
-  '*://*/pdf/*',
-  'file:///*.pdf',
-  'file:///*.PDF',
-];
-
 // ─── Open the two-pane translation viewer for a given tab ──────────────────────
 async function openViewer(tab) {
   let viewer = chrome.runtime.getURL('viewer.html');
@@ -35,11 +23,14 @@ function isPdf(url) {
 // ─── Context menu (right-click) ────────────────────────────────────────────────
 function setupMenu() {
   chrome.contextMenus.removeAll(() => {
+    // No documentUrlPatterns: the native PDF viewer's frame URL is a
+    // chrome-extension:// address, not the PDF URL, so any pattern based on
+    // the PDF URL would never match. Register on all pages instead; the
+    // viewer simply opens empty if the tab isn't a PDF.
     chrome.contextMenus.create({
       id: MENU_ID,
-      title: '用此插件翻譯整份 PDF（全頁翻譯）',
-      contexts: ['page', 'selection', 'action'],
-      documentUrlPatterns: PDF_PATTERNS,
+      title: '用「氛圍閱讀」翻譯整份 PDF',
+      contexts: ['all'],
     });
   });
 }
