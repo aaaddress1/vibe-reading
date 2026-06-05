@@ -133,7 +133,9 @@ let transFont = FONT_DEFAULT;
 
 function applyTransFont(px) {
   transFont = Math.max(FONT_MIN, Math.min(FONT_MAX, px));
-  els.results.style.setProperty('--trans-font', transFont + 'px');
+  // set on the root so both the translation list (#results) and the
+  // AI summary card (#summary, a sibling of #results) inherit it
+  document.documentElement.style.setProperty('--trans-font', transFont + 'px');
   chrome.storage.local.set({ transFont });
 }
 
