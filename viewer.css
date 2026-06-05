@@ -276,6 +276,7 @@ body {
   background: var(--surface-2); color: var(--text); margin-bottom: 10px;
 }
 .ask-input:focus { outline: 2px solid var(--accent); outline-offset: -1px; }
+.ask-btns { display: flex; gap: 8px; }
 .ask-send { align-self: flex-start; padding: 7px 18px; }
 .ask-answer {
   margin-top: 12px; font-size: 13px; color: var(--text); line-height: 1.8;

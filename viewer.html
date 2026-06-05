@@ -71,8 +71,11 @@
       <div class="ask-sel-label">反白的文字：</div>
       <div id="askSel" class="ask-sel"></div>
       <textarea id="askInput" class="ask-input" rows="2"
-        placeholder="想問什麼？（留空＝請 AI 解釋這段文字）"></textarea>
-      <button id="askSend" class="btn btn-primary ask-send">送出</button>
+        placeholder="想問什麼？（Enter 送出，Shift+Enter 換行；留空＝請 AI 解釋這段文字）"></textarea>
+      <div class="ask-btns">
+        <button id="askSend" class="btn btn-primary ask-send">送出</button>
+        <button id="askStop" class="btn btn-stop ask-send" style="display:none">■ 停止</button>
+      </div>
       <div id="askAnswer" class="ask-answer"></div>
     </div>
   </div>

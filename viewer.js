@@ -55,6 +55,7 @@ const els = {
   askSel:        document.getElementById('askSel'),
   askInput:      document.getElementById('askInput'),
   askSend:       document.getElementById('askSend'),
+  askStop:       document.getElementById('askStop'),
   askAnswer:     document.getElementById('askAnswer'),
   askClose:      document.getElementById('askClose'),
 };
@@ -685,10 +686,24 @@ function setupSelectionAsk() {
     openAskModal(selectedText);
   });
 
-  els.askClose.addEventListener('click', () => { els.askModal.style.display = 'none'; });
-  els.askModal.addEventListener('click', (e) => { if (e.target === els.askModal) els.askModal.style.display = 'none'; });
+  // Only the ✕ button or Escape close the modal — NOT clicking the backdrop,
+  // which made it dismiss far too easily.
+  els.askClose.addEventListener('click', closeAskModal);
+  document.addEventListener('keydown', (e) => {
+    if (e.key === 'Escape' && els.askModal.style.display !== 'none') closeAskModal();
+  });
+
   els.askSend.addEventListener('click', askNano);
+  els.askStop.addEventListener('click', () => askAbort?.abort());
+
+  // Enter submits; Shift+Enter inserts a newline
+  els.askInput.addEventListener('keydown', (e) => {
+    if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); askNano(); }
+  });
 }
+
+let askAbort   = null;
+let askSession = null;
 
 function openAskModal(text) {
   els.askSel.textContent = text;
@@ -698,28 +713,49 @@ function openAskModal(text) {
   els.askInput.focus();
 }
 
+function closeAskModal() {
+  askAbort?.abort();              // stop any in-flight answer
+  els.askModal.style.display = 'none';
+}
+
+function askSwap(running) {
+  els.askSend.style.display = running ? 'none' : '';
+  els.askStop.style.display = running ? '' : 'none';
+}
+
 async function askNano() {
+  if (askAbort) return; // already answering
   if (!('LanguageModel' in self)) { els.askAnswer.textContent = 'Gemini Nano 不可用，無法提問。'; return; }
   const question = els.askInput.value.trim() || '請用繁體中文解釋這段文字的意思與相關背景。';
 
-  els.askSend.disabled = true;
+  askAbort = new AbortController();
+  const { signal } = askAbort;
+  askSwap(true);
   els.askAnswer.textContent = '思考中…';
+
   try {
-    const session = await LanguageModel.create({
+    askSession = await LanguageModel.create({
       initialPrompts: [{ role: 'system', content: '你是研究助理。使用者會提供一段論文文字與問題，請根據該文字用繁體中文回答；若需補充常識可適度補充，但須註明。' }],
     });
     const prompt = `【文字片段】\n${els.askSel.textContent}\n\n【問題】\n${question}`;
-    const stream = session.promptStreaming(prompt);
+    const stream = askSession.promptStreaming(prompt, { signal });
     els.askAnswer.textContent = '';
     for await (const chunk of stream) {
       els.askAnswer.textContent += chunk;
       els.askAnswer.scrollTop = els.askAnswer.scrollHeight;
     }
-    session.destroy();
   } catch (e) {
-    els.askAnswer.textContent = '發生錯誤：' + e.message;
+    if (e.name === 'AbortError') {
+      if (!els.askAnswer.textContent || els.askAnswer.textContent === '思考中…') els.askAnswer.textContent = '（已停止）';
+      else els.askAnswer.textContent += '\n\n（已停止）';
+    } else {
+      els.askAnswer.textContent = '發生錯誤：' + e.message;
+    }
   } finally {
-    els.askSend.disabled = false;
+    try { askSession?.destroy(); } catch (_) {}
+    askSession = null;
+    askAbort = null;
+    askSwap(false);
   }
 }
 
