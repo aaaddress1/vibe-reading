@@ -5,6 +5,12 @@
 
 [![Buy Me a Coffee](https://img.buymeacoffee.com/button-api/?text=Buy%20me%20a%20coffee&slug=aaaddress1&button_colour=FFDD00&font_colour=000000&font_family=Cookie&outline_colour=000000&coffee_colour=ffffff)](https://www.buymeacoffee.com/aaaddress1)
 
+![氛圍閱讀 Vibe Reading 介面預覽](preview.png)
+
+### 🎬 Demo
+
+https://github.com/aaaddress1/vibe-reading/raw/main/demo.mp4
+
 ---
 
 ## 這是什麼？
