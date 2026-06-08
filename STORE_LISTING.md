@@ -10,6 +10,10 @@
 生產力 (Productivity)
 
 ## 詳細說明 (Description)
+🔓 本專案完全開源（MIT 授權），原始碼公開於 GitHub：
+https://github.com/aaaddress1/vibe-reading
+歡迎查看程式碼、回報問題或貢獻。
+
 氛圍閱讀 Vibe Reading 是一款完全離線的 PDF 翻譯擴充功能，使用 Chrome 內建的地端 AI（Gemini Nano / Translator API），把整份 PDF 論文逐段翻成繁體中文。所有 AI 推理都在你自己的電腦上完成——論文內容不會送到任何雲端，沒有 API Key、沒有費用、沒有速率限制。
 
 主要功能：
