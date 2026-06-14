@@ -69,8 +69,15 @@
 ## ⚠️ 系統需求
 
 - Chrome **138+**（Windows 10/11、macOS 13+、Linux、Chromebook Plus）
+- **Translator / Language Detector API**：自 Chrome 138 起**正式穩定、免開 flag**
+- **Gemini Nano（Prompt API）**（AI 摘要 / 反白問答 / 翻譯備援）需另外啟用，且硬體門檻較高：
+  - `chrome://flags` 啟用 **Prompt API for Gemini Nano** → 重啟 → `chrome://components` 更新
+    **Optimization Guide On Device Model**（或查 `chrome://on-device-internals` 確認狀態）
+  - 需 **macOS 13+** / Windows 10+ / Linux、磁碟 **≥ 22GB 可用**、**GPU VRAM > 4GB**
+    （或 Chrome **140+** 的 CPU 後援：16GB RAM + 4 核）、首次需不限流量網路下載模型（約 2–4GB）
+  - Apple Silicon（M 系列）符合需求；較舊的 Intel Mac 可能需靠 CPU 後援
 - 不支援 Android / iOS（Chrome 內建 AI 尚未開放）
-- ⚠️ Edge 等其他瀏覽器**無法使用**：`Translator` / `LanguageModel` 為 Chrome 專屬 API
+- ⚠️ Edge / Brave 等其他 Chromium 瀏覽器**無法使用**：`Translator` / `LanguageModel` 為 Chrome 專屬 API
 
 ## 📄 授權
 

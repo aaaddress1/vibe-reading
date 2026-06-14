@@ -553,10 +553,23 @@ function paragraphsFromItems(its) {
   const indentTol = Math.max(12, colWidth * 0.025);  // first-line indent
   const shortTol  = Math.max(16, colWidth * 0.15);   // ragged last line of a paragraph
 
-  // Split into paragraphs. The vertical-gap test is relative to the LOCAL font
-  // size (so a large title's wide line spacing isn't mistaken for a paragraph
-  // break), and indent/short tests are guarded against centred lines (titles,
-  // author blocks) which inset on both sides.
+  // Is this block justified (flush right margin)? If so, a line stopping short of
+  // the right edge marks a paragraph end. For ragged / left-aligned text MOST
+  // lines stop short, so that test would split every single line into its own
+  // paragraph — there, rely on vertical gap + indent only.
+  const justified = L.filter(l => l.endX > rightEdge - shortTol).length >= L.length * 0.6;
+
+  // Typical in-paragraph line gap for THIS block. A paragraph break is a gap
+  // clearly larger than that — measured relative to the block's own leading, so
+  // loosely-leaded text isn't split on every line, and not tied to the
+  // (unreliable) reported glyph height.
+  const gaps = [];
+  for (let i = 1; i < L.length; i++) gaps.push(Math.abs(L[i - 1].y - L[i].y));
+  const sortedGaps = gaps.slice().sort((a, b) => a - b);
+  const medianGap = sortedGaps.length ? sortedGaps[Math.floor(sortedGaps.length / 2)] : 0;
+
+  // Split into paragraphs. indent/short tests are guarded against centred lines
+  // (titles, author blocks) which inset on both sides.
   const groups = [];
   let g = [L[0]];
   for (let i = 1; i < L.length; i++) {
