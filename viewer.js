@@ -457,90 +457,60 @@ function gotoPage(delta) {
 
 function extractParagraphs(items) {
   // Keep non-empty, horizontal text only — drop rotated items such as the
-  // vertical "arXiv:…" watermark, which otherwise corrupts margin geometry.
+  // vertical "arXiv:…" watermark, which otherwise corrupts margin/column geometry.
   const its = items.filter(it =>
     it.str.trim() &&
     Math.abs(it.transform[1]) < 2 && Math.abs(it.transform[2]) < 2);
   if (!its.length) return [];
 
-  // Multi-column papers place left- and right-column lines on the SAME baseline,
-  // so grouping by y alone splices them into one cross-column "sentence". Split
-  // into per-column item buckets (in reading order) first, then extract
-  // paragraphs within each bucket. A single-column page yields one bucket, so
-  // its behaviour is unchanged.
+  // Detect a two-column layout and process each column independently, so the
+  // reading order stays within a column instead of jumping across at the same Y.
   const out = [];
-  for (const bucket of splitColumns(its)) out.push(...paragraphsFromItems(bucket));
+  for (const col of splitColumns(its)) out.push(...paragraphsFromItems(col));
   return out;
 }
 
-const itemSpan = it => [it.transform[4], it.transform[4] + (it.width || 0)];
-
-// Detect a 1- vs 2-column layout; return item buckets in reading order.
+// → [fullWidth, leftColumn, rightColumn] for a 2-column page, else [allItems].
 function splitColumns(its) {
-  let pageMin = Infinity, pageMax = -Infinity;
-  for (const it of its) { const [s, e] = itemSpan(it); pageMin = Math.min(pageMin, s); pageMax = Math.max(pageMax, e); }
-  const width = pageMax - pageMin;
-  if (width <= 0 || its.length < 8) return [its];
-  const centerX = (pageMin + pageMax) / 2;
+  const minX = Math.min(...its.map(it => it.transform[4]));
+  const maxX = Math.max(...its.map(it => it.transform[4] + (it.width || 0)));
+  const pageW = maxX - minX;
+  if (pageW < 50) return [its];
 
-  const crossings = (x) => {
-    let n = 0; for (const it of its) { const [s, e] = itemSpan(it); if (s < x && e > x) n++; } return n;
-  };
-  // Gutter = x near the centre crossed by the fewest items.
-  let gutter = centerX, best = Infinity;
-  for (let f = -0.15; f <= 0.15 + 1e-9; f += 0.02) {
-    const x = centerX + f * width, c = crossings(x);
-    if (c < best) { best = c; gutter = x; }
-  }
-  // Require few crossings AND substantial content on both sides → real 2-column.
-  let left = 0, right = 0;
-  for (const it of its) { const [s, e] = itemSpan(it); if (e <= gutter) left++; else if (s >= gutter) right++; }
-  const n = its.length;
-  if (best > n * 0.10 || left < n * 0.15 || right < n * 0.15) return [its];
-
-  return bandSplit(its, gutter);
-}
-
-// Walk lines top→bottom: full-width lines stay in place; two-column bands emit
-// their left-column items then right-column items. Preserves reading order
-// across full-width interludes (title, abstract, cross-column figures).
-function bandSplit(its, gutter) {
-  const sorted = its.slice().sort((a, b) => {
-    const dy = b.transform[5] - a.transform[5];
-    return Math.abs(dy) > 2 ? dy : a.transform[4] - b.transform[4];
-  });
-  const lines = [];
-  let ln = { y: sorted[0].transform[5], items: [sorted[0]] };
-  for (let i = 1; i < sorted.length; i++) {
-    const y = sorted[i].transform[5];
-    if (Math.abs(y - ln.y) <= 3) ln.items.push(sorted[i]);
-    else { lines.push(ln); ln = { y, items: [sorted[i]] }; }
-  }
-  lines.push(ln);
-
-  const buckets = [];
-  let mode = null, full = null, lft = null, rgt = null;
-  const flushLR   = () => { if (lft && lft.length) buckets.push(lft); if (rgt && rgt.length) buckets.push(rgt); lft = rgt = null; };
-  const flushFull = () => { if (full && full.length) buckets.push(full); full = null; };
-  for (const l of lines) {
-    const isFull = l.items.some(it => { const [s, e] = itemSpan(it); return s < gutter && e > gutter; });
-    if (isFull) {
-      if (mode === 'lr') flushLR();
-      mode = 'full'; full = full || []; full.push(...l.items);
-    } else {
-      if (mode === 'full') flushFull();
-      mode = 'lr'; lft = lft || []; rgt = rgt || [];
-      for (const it of l.items) { const c = it.transform[4] + (it.width || 0) / 2; (c < gutter ? lft : rgt).push(it); }
+  // Scan candidate split lines in the central band and pick the X that the
+  // fewest text items straddle. Column body lines stay within a column (don't
+  // cross), so the true gutter has minimal crossings — robust even when a
+  // full-width figure scatters small labels across the middle.
+  const N = its.length;
+  let bestX = null, bestCross = Infinity;
+  for (let gx = minX + pageW * 0.35; gx <= minX + pageW * 0.65; gx += 4) {
+    let cross = 0, leftN = 0, rightN = 0;
+    for (const it of its) {
+      const s = it.transform[4], e = it.transform[4] + (it.width || 0);
+      if (s < gx && e > gx) cross++;
+      else if (e <= gx) leftN++;
+      else rightN++;
     }
+    if (cross < bestCross && leftN > N * 0.15 && rightN > N * 0.15) { bestCross = cross; bestX = gx; }
   }
-  flushLR(); flushFull();
-  return buckets;
+
+  // Accept as 2-column only if very few items cross the chosen line.
+  if (bestX == null || bestCross > N * 0.12) return [its];
+
+  const tol = pageW * 0.02;
+  const full = [], left = [], right = [];
+  for (const it of its) {
+    const s = it.transform[4], e = it.transform[4] + (it.width || 0);
+    if (s < bestX - tol && e > bestX + tol) full.push(it);   // spans gutter → full width
+    else if ((s + e) / 2 < bestX) left.push(it);
+    else right.push(it);
+  }
+  return [full, left, right].filter(c => c.length);
 }
 
 function paragraphsFromItems(its) {
   if (!its.length) return [];
-
-  its.sort((a, b) => {
+  its = its.slice().sort((a, b) => {
     const dy = b.transform[5] - a.transform[5];
     return Math.abs(dy) > 2 ? dy : a.transform[4] - b.transform[4];
   });
@@ -606,14 +576,15 @@ function paragraphsFromItems(its) {
     const prev = L[i - 1], cur = L[i];
     const fh = Math.max(prev.fontH, cur.fontH) || 12;
 
-    const lineGap      = Math.abs(prev.y - cur.y);
-    const bigGap       = (gaps.length >= 3 && medianGap > 0) ? lineGap > medianGap * 1.5 + 1 : lineGap > fh * 1.5;
+    // Paragraph break on a clear vertical gap (relative to local font size, so
+    // large-font titles stay intact) or a first-line indent. The previous
+    // "short last line" rule was dropped — superscript/footnote markers and
+    // ragged line ends made it over-segment paragraphs into fragments.
+    const bigGap       = Math.abs(prev.y - cur.y) > fh * 1.4;
     const reachesRight = cur.endX > rightEdge - shortTol;
     const indented     = cur.startX > leftMargin + indentTol && reachesRight;
-    const curAtMargin  = cur.startX <= leftMargin + indentTol;
-    const shortBreak   = justified && prev.endX < rightEdge - shortTol && curAtMargin;
 
-    if (bigGap || indented || shortBreak) { groups.push(g); g = []; }
+    if (bigGap || indented) { groups.push(g); g = []; }
     g.push(cur);
   }
   if (g.length) groups.push(g);
