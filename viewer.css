@@ -260,14 +260,20 @@ body {
 }
 .textLayer ::selection { background: rgba(138,180,248,0.45); }
 
-/* ── Floating "ask AI" button ──────────────────────────────── */
+/* ── Floating selection buttons (ask AI / translate) ───────── */
 .ask-float {
   position: fixed; z-index: 100;
-  padding: 6px 12px; border: none; border-radius: 16px;
-  background: var(--accent-2); color: #fff; font-size: 12px; font-weight: 600;
-  cursor: pointer; box-shadow: 0 3px 12px rgba(0,0,0,0.5);
+  display: flex; gap: 4px;
+  background: var(--surface); border: 1px solid var(--border);
+  border-radius: 18px; padding: 3px;
+  box-shadow: 0 3px 12px rgba(0,0,0,0.5);
 }
-.ask-float:hover { background: #5a95f5; }
+.float-btn {
+  padding: 5px 11px; border: none; border-radius: 14px;
+  background: var(--accent-2); color: #fff; font-size: 12px; font-weight: 600;
+  cursor: pointer; white-space: nowrap;
+}
+.float-btn:hover { background: #5a95f5; }
 
 /* ── Ask-Nano modal ────────────────────────────────────────── */
 /* Floating, non-blocking panel — no full-screen backdrop, so the rest of the

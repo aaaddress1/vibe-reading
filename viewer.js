@@ -56,6 +56,8 @@ const els = {
   summary:       document.getElementById('summary'),
   results:       document.getElementById('results'),
   askFloat:      document.getElementById('askFloat'),
+  askFloatAsk:   document.getElementById('askFloatAsk'),
+  askFloatTrans: document.getElementById('askFloatTrans'),
   askModal:      document.getElementById('askModal'),
   askSel:        document.getElementById('askSel'),
   askInput:      document.getElementById('askInput'),
@@ -463,82 +465,177 @@ function extractParagraphs(items) {
     Math.abs(it.transform[1]) < 2 && Math.abs(it.transform[2]) < 2);
   if (!its.length) return [];
 
-  // Detect a two-column layout and process each column independently, so the
-  // reading order stays within a column instead of jumping across at the same Y.
+  // Build visual line fragments first. PDF.js may emit either whole-line items
+  // or word/run-level items; column detection on raw items is therefore brittle.
+  const lines = buildVisualLines(its);
+  if (!lines.length) return [];
+
   const out = [];
-  for (const col of splitColumns(its)) out.push(...paragraphsFromItems(col));
+  for (const block of readingBlocksFromLines(lines)) out.push(...paragraphsFromLines(block));
   return out;
 }
 
-// → [fullWidth, leftColumn, rightColumn] for a 2-column page, else [allItems].
-function splitColumns(its) {
+function lineCompare(a, b) {
+  const dy = b.y - a.y;
+  return Math.abs(dy) > 2 ? dy : a.startX - b.startX;
+}
+
+function median(nums) {
+  if (!nums.length) return 0;
+  const a = nums.slice().sort((x, y) => x - y);
+  return a[Math.floor(a.length / 2)];
+}
+
+function makeLine(items, fallbackY) {
+  const sorted = items.slice().sort((a, b) => a.transform[4] - b.transform[4]);
+  const starts  = sorted.map(it => it.transform[4]);
+  const ends    = sorted.map(it => it.transform[4] + (it.width || 0));
+  const heights = sorted.map(it => it.height || 10);
+  return {
+    y: median(sorted.map(it => it.transform[5])) || fallbackY,
+    startX: Math.min(...starts),
+    endX: Math.max(...ends),
+    fontH: median(heights) || 10,
+    items: sorted,
+    text: sorted.map(it => it.str).join(' ').replace(/\s+/g, ' ').trim(),
+  };
+}
+
+function buildVisualLines(its) {
+  const fontH = median(its.map(it => it.height || 10)) || 10;
+  const rowTolerance = Math.max(3, fontH * 0.45);
+  const sorted = its.slice().sort((a, b) => {
+    const dy = b.transform[5] - a.transform[5];
+    return Math.abs(dy) > rowTolerance ? dy : a.transform[4] - b.transform[4];
+  });
+
+  const rows = [];
+  let row = { y: sorted[0].transform[5], items: [sorted[0]] };
+  for (let i = 1; i < sorted.length; i++) {
+    const y = sorted[i].transform[5];
+    if (Math.abs(y - row.y) <= rowTolerance) row.items.push(sorted[i]);
+    else { rows.push(row); row = { y, items: [sorted[i]] }; }
+  }
+  rows.push(row);
+
   const minX = Math.min(...its.map(it => it.transform[4]));
   const maxX = Math.max(...its.map(it => it.transform[4] + (it.width || 0)));
   const pageW = maxX - minX;
-  if (pageW < 50) return [its];
+  const gapThreshold = Math.max(12, fontH * 1.15, pageW * 0.022);
 
-  // Scan candidate split lines in the central band and pick the X that the
-  // fewest text items straddle. Column body lines stay within a column (don't
-  // cross), so the true gutter has minimal crossings — robust even when a
-  // full-width figure scatters small labels across the middle.
-  const N = its.length;
-  let bestX = null, bestCross = Infinity;
-  for (let gx = minX + pageW * 0.35; gx <= minX + pageW * 0.65; gx += 4) {
-    let cross = 0, leftN = 0, rightN = 0;
-    for (const it of its) {
-      const s = it.transform[4], e = it.transform[4] + (it.width || 0);
-      if (s < gx && e > gx) cross++;
-      else if (e <= gx) leftN++;
-      else rightN++;
+  const lines = [];
+  for (const r of rows) {
+    const rowItems = r.items.slice().sort((a, b) => a.transform[4] - b.transform[4]);
+    let frag = [rowItems[0]];
+    let lastEnd = rowItems[0].transform[4] + (rowItems[0].width || 0);
+    for (let i = 1; i < rowItems.length; i++) {
+      const it = rowItems[i];
+      const x = it.transform[4];
+      const end = x + (it.width || 0);
+      if (x - lastEnd > gapThreshold) {
+        const line = makeLine(frag, r.y);
+        if (line.text) lines.push(line);
+        frag = [];
+      }
+      frag.push(it);
+      lastEnd = Math.max(lastEnd, end);
     }
-    if (cross < bestCross && leftN > N * 0.15 && rightN > N * 0.15) { bestCross = cross; bestX = gx; }
+    const line = makeLine(frag, r.y);
+    if (line.text) lines.push(line);
   }
 
-  // Accept as 2-column only if very few items cross the chosen line.
-  if (bestX == null || bestCross > N * 0.12) return [its];
-
-  const tol = pageW * 0.02;
-  const full = [], left = [], right = [];
-  for (const it of its) {
-    const s = it.transform[4], e = it.transform[4] + (it.width || 0);
-    if (s < bestX - tol && e > bestX + tol) full.push(it);   // spans gutter → full width
-    else if ((s + e) / 2 < bestX) left.push(it);
-    else right.push(it);
-  }
-  return [full, left, right].filter(c => c.length);
+  return lines.sort(lineCompare);
 }
 
-function paragraphsFromItems(its) {
-  if (!its.length) return [];
-  its = its.slice().sort((a, b) => {
-    const dy = b.transform[5] - a.transform[5];
-    return Math.abs(dy) > 2 ? dy : a.transform[4] - b.transform[4];
-  });
+function detectTwoColumnLines(lines) {
+  if (lines.length < 10) return { twoColumn: false };
 
-  // group items into visual lines (same baseline ±3)
-  const rawLines = [];
-  let line = { y: its[0].transform[5], items: [its[0]] };
-  for (let i = 1; i < its.length; i++) {
-    const y = its[i].transform[5];
-    if (Math.abs(y - line.y) <= 3) line.items.push(its[i]);
-    else { rawLines.push(line); line = { y, items: [its[i]] }; }
+  const minX = Math.min(...lines.map(l => l.startX));
+  const maxX = Math.max(...lines.map(l => l.endX));
+  const pageW = maxX - minX;
+  if (pageW < 50) return { twoColumn: false };
+
+  const bodyLines = lines.filter(l =>
+    l.text.length >= 16 &&
+    (l.endX - l.startX) > pageW * 0.18);
+  if (bodyLines.length < 10) return { twoColumn: false };
+
+  const n = bodyLines.length;
+  let best = null;
+  for (let gx = minX + pageW * 0.35; gx <= minX + pageW * 0.65; gx += 4) {
+    let cross = 0, leftN = 0, rightN = 0;
+    for (const l of bodyLines) {
+      if (l.startX < gx && l.endX > gx) cross++;
+      else if (l.endX <= gx) leftN++;
+      else rightN++;
+    }
+    if (leftN > n * 0.15 && rightN > n * 0.15) {
+      const score = cross + Math.abs(leftN - rightN) * 0.1;
+      if (!best || score < best.score) best = { x: gx, cross, leftN, rightN, score };
+    }
   }
-  rawLines.push(line);
 
-  // compute per-line geometry (left/right edges, text)
-  const L = rawLines.map(l => {
-    const starts  = l.items.map(it => it.transform[4]);
-    const ends    = l.items.map(it => it.transform[4] + (it.width || 0));
-    const heights = l.items.map(it => it.height || 10).sort((a, b) => a - b);
-    return {
-      y: l.y,
-      startX: Math.min(...starts),
-      endX: Math.max(...ends),
-      fontH: heights[Math.floor(heights.length / 2)] || 10,  // local font size
-      items: l.items,
-      text: l.items.map(it => it.str).join(' ').replace(/\s+/g, ' ').trim(),
-    };
-  }).filter(l => l.text);
+  if (!best || best.cross > Math.max(4, n * 0.30)) return { twoColumn: false };
+
+  const leftLines = bodyLines.filter(l => l.endX <= best.x);
+  const rightLines = bodyLines.filter(l => l.startX >= best.x);
+  const leftCenter = median(leftLines.map(l => (l.startX + l.endX) / 2));
+  const rightCenter = median(rightLines.map(l => (l.startX + l.endX) / 2));
+  if (rightCenter - leftCenter < pageW * 0.25) return { twoColumn: false };
+
+  return { twoColumn: true, splitX: best.x, pageW };
+}
+
+function classifyLine(line, splitX, tol) {
+  if (line.startX < splitX - tol && line.endX > splitX + tol) return 'full';
+  return (line.startX + line.endX) / 2 < splitX ? 'left' : 'right';
+}
+
+function readingBlocksFromLines(lines) {
+  const layout = detectTwoColumnLines(lines);
+  if (!layout.twoColumn) return [lines.slice().sort(lineCompare)];
+
+  const tol = Math.max(6, layout.pageW * 0.015);
+  const annotated = lines
+    .map(l => Object.assign({}, l, { column: classifyLine(l, layout.splitX, tol) }))
+    .sort(lineCompare);
+
+  const blocks = [];
+  let zone = [];
+
+  function flushZone() {
+    if (!zone.length) return;
+    const left = zone.filter(l => l.column === 'left').sort(lineCompare);
+    const right = zone.filter(l => l.column === 'right').sort(lineCompare);
+    if (left.length && right.length) {
+      blocks.push(left, right);
+    } else {
+      blocks.push(zone.slice().sort(lineCompare));
+    }
+    zone = [];
+  }
+
+  for (let i = 0; i < annotated.length; i++) {
+    const line = annotated[i];
+    if (line.column !== 'full') {
+      zone.push(line);
+      continue;
+    }
+
+    flushZone();
+    const fullRun = [line];
+    while (i + 1 < annotated.length && annotated[i + 1].column === 'full') {
+      fullRun.push(annotated[++i]);
+    }
+    blocks.push(fullRun.sort(lineCompare));
+  }
+  flushZone();
+
+  return blocks.filter(b => b.length);
+}
+
+function paragraphsFromLines(lines) {
+  const L = lines.slice().sort(lineCompare).filter(l => l.text);
   if (!L.length) return [];
 
   // Dominant left margin = most common startX (robust to outliers like
@@ -945,8 +1042,8 @@ function setupSelectionAsk() {
         selectedText = text;
         const r = sel.getRangeAt(0).getBoundingClientRect();
         els.askFloat.style.display = '';
-        els.askFloat.style.left = Math.min(window.innerWidth - 110, r.left + r.width / 2 - 45) + 'px';
-        els.askFloat.style.top  = Math.max(8, r.top - 40) + 'px';
+        els.askFloat.style.left = Math.min(window.innerWidth - 175, Math.max(4, r.left + r.width / 2 - 85)) + 'px';
+        els.askFloat.style.top  = Math.max(8, r.top - 42) + 'px';
       } else {
         els.askFloat.style.display = 'none';
       }
@@ -955,9 +1052,17 @@ function setupSelectionAsk() {
 
   els.pdfPane.addEventListener('scroll', () => { els.askFloat.style.display = 'none'; });
 
-  els.askFloat.addEventListener('click', () => {
+  els.askFloatAsk.addEventListener('click', () => {
     els.askFloat.style.display = 'none';
     openAskModal(selectedText);
+  });
+
+  // Quick-translate: reuse the same panel, but skip the question flow and
+  // immediately show the translation of the selected text.
+  els.askFloatTrans.addEventListener('click', () => {
+    els.askFloat.style.display = 'none';
+    openAskModal(selectedText);
+    quickTranslateSelection(selectedText);
   });
 
   // Only the ✕ button or Escape close the modal — NOT clicking the backdrop,
@@ -1009,6 +1114,26 @@ function openAskModal(text) {
 function closeAskModal() {
   askAbort?.abort();              // stop any in-flight answer
   els.askModal.style.display = 'none';
+}
+
+// Translate the selected snippet and show the result in the ask panel's
+// answer area. Reuses the full-document translator when it's already
+// initialised; otherwise initialises one on demand.
+let quickTransGen = 0;
+async function quickTranslateSelection(text) {
+  const gen = ++quickTransGen;
+  els.askAnswer.textContent = '翻譯中…';
+  try {
+    if (!translatorObj) {
+      translatorObj = await initTranslator(detectedSource, els.targetLang.value);
+    }
+    const translated = await doTranslate(translatorObj, text);
+    if (gen !== quickTransGen) return;                       // superseded / closed
+    if (els.askModal.style.display === 'none') return;
+    els.askAnswer.textContent = translated;
+  } catch (e) {
+    if (gen === quickTransGen) els.askAnswer.textContent = '翻譯失敗：' + e.message;
+  }
 }
 
 function askSwap(running) {
