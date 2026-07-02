@@ -931,9 +931,55 @@ function appendSegment(para, idx) {
     </div>
     <div class="seg-orig">${esc(para.text)}</div>
     <div class="seg-trans loading">翻譯中…</div>`;
-  div.addEventListener('click', () => locate(idx, div));
+  div.addEventListener('click', (e) => {
+    if (e.target.closest('.seg-edit')) return;   // don't locate while editing
+    locate(idx, div);
+  });
+  // Double-click the translation → inline edit mode (fix wording, re-paragraph
+  // with Enter). Blur or Ctrl+Enter saves; Esc cancels.
+  div.addEventListener('dblclick', (e) => {
+    const t = e.target.closest('.seg-trans');
+    if (t && !t.classList.contains('loading')) enterEditMode(t);
+  });
   els.results.appendChild(div);
   return div;
+}
+
+function enterEditMode(transEl) {
+  if (transEl.querySelector('.seg-edit')) return;   // already editing
+  const original = transEl.textContent;
+
+  const ta = document.createElement('textarea');
+  ta.className = 'seg-edit';
+  ta.value = original;
+  transEl.textContent = '';
+  transEl.appendChild(ta);
+  // size to content
+  ta.style.height = 'auto';
+  ta.style.height = Math.min(400, ta.scrollHeight + 4) + 'px';
+  ta.focus();
+  ta.addEventListener('input', () => {
+    ta.style.height = 'auto';
+    ta.style.height = Math.min(400, ta.scrollHeight + 4) + 'px';
+  });
+
+  let done = false;
+  const finish = (save) => {
+    if (done) return;
+    done = true;
+    const text = save ? ta.value : original;
+    ta.remove();
+    transEl.textContent = text;
+  };
+  ta.addEventListener('blur', () => finish(true));
+  ta.addEventListener('keydown', (e) => {
+    e.stopPropagation();                             // keep panel hotkeys out
+    if (e.key === 'Enter' && (e.ctrlKey || e.metaKey)) { e.preventDefault(); ta.blur(); }
+    else if (e.key === 'Escape') finish(false);
+  });
+  // keep clicks inside the editor from bubbling to the locate handler
+  ['click', 'mouseup', 'mousedown', 'dblclick'].forEach(ev =>
+    ta.addEventListener(ev, (e) => e.stopPropagation()));
 }
 
 function fillTranslation(el, text, isError = false) {

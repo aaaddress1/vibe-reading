@@ -224,7 +224,20 @@ body {
   padding-bottom: 6px; margin-bottom: 6px; border-bottom: 1px dashed var(--border);
   display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden;
 }
-.seg-trans { font-size: var(--trans-font, 13px); color: var(--text); line-height: 1.75; }
+.seg-trans {
+  font-size: var(--trans-font, 13px); color: var(--text); line-height: 1.75;
+  white-space: pre-wrap;   /* honour manual line breaks from edit mode */
+}
+
+/* inline editor (double-click a translation to edit / re-paragraph) */
+.seg-edit {
+  width: 100%; box-sizing: border-box; resize: vertical;
+  background: var(--surface-2); color: var(--text);
+  border: 1px solid var(--accent); border-radius: 6px;
+  padding: 8px 10px; font-family: inherit;
+  font-size: var(--trans-font, 13px); line-height: 1.75;
+}
+.seg-edit:focus { outline: none; }
 .seg-trans.loading { color: var(--faint); font-style: italic; }
 .seg-trans.err { color: var(--err-fg); font-size: 11px; }
 
