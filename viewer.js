@@ -582,7 +582,14 @@ function paragraphsFromItems(its) {
     // ragged line ends made it over-segment paragraphs into fragments.
     const bigGap       = Math.abs(prev.y - cur.y) > fh * 1.4;
     const reachesRight = cur.endX > rightEdge - shortTol;
-    const indented     = cur.startX > leftMargin + indentTol && reachesRight;
+    // First-line indent is judged against NEIGHBOURING lines, not the global
+    // page margin: a real paragraph-initial line is inset relative to the line
+    // below it (which returns to the block's left edge). Blocks that are inset
+    // as a whole (e.g. JMLR abstracts) have equal startX on every line, so they
+    // no longer split line-by-line.
+    const nxt          = L[i + 1];
+    const blockLeft    = Math.min(prev.startX, nxt ? nxt.startX : prev.startX);
+    const indented     = cur.startX > blockLeft + indentTol && reachesRight;
 
     if (bigGap || indented) { groups.push(g); g = []; }
     g.push(cur);
