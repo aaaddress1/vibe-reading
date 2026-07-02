@@ -1061,7 +1061,7 @@ function setupSelectionAsk() {
   // immediately show the translation of the selected text.
   els.askFloatTrans.addEventListener('click', () => {
     els.askFloat.style.display = 'none';
-    openAskModal(selectedText);
+    openAskModal(selectedText, 'translate');
     quickTranslateSelection(selectedText);
   });
 
@@ -1103,12 +1103,21 @@ function setupSelectionAsk() {
 let askAbort   = null;
 let askSession = null;
 
-function openAskModal(text) {
+function openAskModal(text, mode = 'ask') {
   els.askSel.textContent = text;
   els.askInput.value = '';
-  els.askAnswer.textContent = '';
   els.askModal.style.display = 'flex';
-  els.askInput.focus();
+  if (mode === 'translate') {
+    // Translate mode: no typing needed — translation starts immediately.
+    // The input stays available only for optional follow-up questions.
+    els.askAnswer.textContent = '翻譯中…';
+    els.askInput.placeholder = '想追問這段內容？輸入問題後按 Enter（直接翻譯無需輸入）';
+    els.askInput.blur();
+  } else {
+    els.askAnswer.textContent = '';
+    els.askInput.placeholder = '想問什麼？（Enter 送出，Shift+Enter 換行；留空＝請 AI 解釋這段文字）';
+    els.askInput.focus();
+  }
 }
 
 function closeAskModal() {
