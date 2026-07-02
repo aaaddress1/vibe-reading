@@ -31,6 +31,8 @@
 - **自動翻譯**：開啟即翻，也可手動重翻
 - **🧠 AI 摘要**：讀完整份論文後，頂部以 Gemini Nano 生成四大重點 —— 背景知識、相關研究、突破亮點、總結
 - **🤖 反白問 AI**：在論文中反白文字，直接向 Gemini Nano 提問；提問會附上 AI 摘要與該段前後文作為上下文，回答更精準（可隨時停止、視窗不鎖住可邊讀邊問）
+- **🌐 反白快速翻譯**：反白文字後點「翻譯」，面板立即顯示該段譯文——零輸入，輸入框保留供追問
+- **✏️ 字卡編輯模式**：雙擊任一段譯文就地編輯，可手動修改文字、按 Enter 重新分段；失焦或 Ctrl+Enter 儲存、Esc 取消
 - **⌨️ Alt+T 熱鍵**：在任意 PDF 分頁按 Alt+T 一鍵開啟翻譯；也可點工具列圖示或右鍵選單
 - **🔍 PDF 獨立縮放**：Ctrl+滾輪／觸控板雙指只縮放左側 PDF（不連動整頁），平滑如原生；←/→ 翻頁
 - **📰 雙欄論文支援**：自動偵測分欄，左右欄正確分開讀取
@@ -100,6 +102,8 @@ MIT License
 - **Auto-translate** on open, with manual re-run
 - **🧠 AI Summary** by Gemini Nano: Background, Related Work, Highlights, Conclusion
 - **🤖 Ask-AI on selection**: highlight text and ask Gemini Nano; the prompt includes the AI summary and the surrounding paragraphs as context. Stoppable, and the panel is non-blocking so you can keep reading
+- **🌐 Quick-translate on selection**: hit "翻譯" on the floating bar and the panel instantly shows the translation — zero typing, with the input kept for follow-ups
+- **✏️ Editable translation cards**: double-click any translation to edit in place — fix wording or re-paragraph with Enter; blur/Ctrl+Enter saves, Esc cancels
 - **⌨️ Alt+T hotkey** to open the translator on any PDF tab (also via toolbar icon or right-click menu)
 - **🔍 Independent PDF zoom**: Ctrl+wheel / trackpad pinch zooms only the left PDF (smooth, native-like); ←/→ flip pages
 - **📰 Two-column papers** detected and read column-by-column
