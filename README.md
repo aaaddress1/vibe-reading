@@ -5,6 +5,10 @@
 
 [![Buy Me a Coffee](https://img.buymeacoffee.com/button-api/?text=Buy%20me%20a%20coffee&slug=aaaddress1&button_colour=FFDD00&font_colour=000000&font_family=Cookie&outline_colour=000000&coffee_colour=ffffff)](https://www.buymeacoffee.com/aaaddress1)
 
+### 🚀 [立即安裝 — Chrome 線上應用程式商店](https://chromewebstore.google.com/detail/%E6%B0%9B%E5%9C%8D%E9%96%B1%E8%AE%80-vibe-reading/aaiiajcclefdjeegondambmholpnkjme)
+
+[![Chrome Web Store](https://img.shields.io/badge/Chrome%20Web%20Store-%E6%B0%9B%E5%9C%8D%E9%96%B1%E8%AE%80%20Vibe%20Reading-4285F4?logo=googlechrome&logoColor=white)](https://chromewebstore.google.com/detail/%E6%B0%9B%E5%9C%8D%E9%96%B1%E8%AE%80-vibe-reading/aaiiajcclefdjeegondambmholpnkjme)
+
 ![氛圍閱讀 Vibe Reading 介面預覽](preview.png)
 
 ### 🎬 Demo
@@ -41,14 +45,17 @@
 
 ## 📦 安裝
 
-> 也可直接到 [Releases](https://github.com/aaaddress1/vibe-reading/releases) 下載打包好的 zip。
+**方法一（推薦）：Chrome 線上應用程式商店一鍵安裝**
+👉 https://chromewebstore.google.com/detail/%E6%B0%9B%E5%9C%8D%E9%96%B1%E8%AE%80-vibe-reading/aaiiajcclefdjeegondambmholpnkjme
+
+**方法二：手動載入開發版**（也可到 [Releases](https://github.com/aaaddress1/vibe-reading/releases) 下載打包 zip）
 
 1. **載入擴充功能**：
    - 開啟 `chrome://extensions`
    - 右上角開啟「開發人員模式」
    - 點「載入未封裝項目」→ 選擇本資料夾（已內含 `lib/`，無需額外下載）
 
-2. **啟用 Chrome 內建 AI（僅首次）**：
+2. **啟用 Chrome 內建 AI（僅首次，兩種安裝方式都需要）**：
    - `chrome://flags` → 啟用 **Prompt API** 與 **Translator API** → 重啟 Chrome
    - `chrome://components` → 更新 **Optimization Guide On Device Model**（約 2.4GB）
 
@@ -111,10 +118,12 @@ MIT License
 
 ## Install
 
-> Or grab a packaged zip from [Releases](https://github.com/aaaddress1/vibe-reading/releases).
+**Option 1 (recommended): [Install from the Chrome Web Store](https://chromewebstore.google.com/detail/%E6%B0%9B%E5%9C%8D%E9%96%B1%E8%AE%80-vibe-reading/aaiiajcclefdjeegondambmholpnkjme)** — one click.
+
+**Option 2: load unpacked** (or grab a packaged zip from [Releases](https://github.com/aaaddress1/vibe-reading/releases)):
 
 1. `chrome://extensions` → Developer mode → **Load unpacked** → select this folder (`lib/` is already bundled).
-2. First run: enable **Prompt API** & **Translator API** in `chrome://flags`, restart, then update **Optimization Guide On Device Model** in `chrome://components` (~2.4GB).
+2. First run (needed for both options): enable **Prompt API** & **Translator API** in `chrome://flags`, restart, then update **Optimization Guide On Device Model** in `chrome://components` (~2.4GB).
 
 ## Requirements
 
