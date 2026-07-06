@@ -35,7 +35,12 @@ function setupMenu() {
   });
 }
 
-chrome.runtime.onInstalled.addListener(setupMenu);
+chrome.runtime.onInstalled.addListener((details) => {
+  setupMenu();
+  if (details.reason === 'install') {
+    chrome.tabs.create({ url: chrome.runtime.getURL('viewer.html?welcome=1') });
+  }
+});
 chrome.runtime.onStartup.addListener(setupMenu);
 
 chrome.contextMenus.onClicked.addListener((info, tab) => {

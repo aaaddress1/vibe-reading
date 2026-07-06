@@ -40,6 +40,7 @@ const els = {
   zoomFit:       document.getElementById('zoomFit'),
   zoomLabel:     document.getElementById('zoomLabel'),
   targetLang:    document.getElementById('targetLang'),
+  settingsBtn:   document.getElementById('settingsBtn'),
   aiBadge:       document.getElementById('aiBadge'),
   translateBtn:  document.getElementById('translateBtn'),
   stopBtn:       document.getElementById('stopBtn'),
@@ -66,6 +67,23 @@ const els = {
   askAnswer:     document.getElementById('askAnswer'),
   askClose:      document.getElementById('askClose'),
   askHead:       document.getElementById('askHead'),
+  welcomeModal:      document.getElementById('welcomeModal'),
+  welcomeTargetLang: document.getElementById('welcomeTargetLang'),
+  welcomeClose:      document.getElementById('welcomeClose'),
+  welcomeOpenExt:    document.getElementById('welcomeOpenExt'),
+  welcomeRecheck:    document.getElementById('welcomeRecheck'),
+  welcomeOpenShortcuts: document.getElementById('welcomeOpenShortcuts'),
+  welcomeDone:       document.getElementById('welcomeDone'),
+  welcomeKicker:     document.getElementById('welcomeKicker'),
+  welcomeTitle:      document.getElementById('welcomeTitle'),
+  welcomeLangLabel:  document.getElementById('welcomeLangLabel'),
+  welcomeLangCopy:   document.getElementById('welcomeLangCopy'),
+  welcomeFileLabel:  document.getElementById('welcomeFileLabel'),
+  welcomeFileCopy:   document.getElementById('welcomeFileCopy'),
+  welcomeShortcutLabel: document.getElementById('welcomeShortcutLabel'),
+  welcomeShortcutCopy:  document.getElementById('welcomeShortcutCopy'),
+  fileAccessStatus:  document.getElementById('fileAccessStatus'),
+  shortcutStatus:    document.getElementById('shortcutStatus'),
 };
 
 // ─── State ────────────────────────────────────────────────────────────────────
@@ -81,11 +99,71 @@ let selectedText  = '';
 let summaryDone   = false;
 let summaryObj    = null;   // generated AI summary, reused as Q&A context
 let segEls        = [];     // paragraph index -> right-pane segment element
+let welcomeText   = null;
+
+const WELCOME_TEXT = {
+  'zh-TW': {
+    lang: 'zh-TW',
+    kicker: '初次設定',
+    title: '歡迎使用氛圍閱讀',
+    closeTitle: '關閉',
+    settingsTitle: '設定',
+    targetLabel: '預設目標語言',
+    targetCopy: '之後每次開啟 PDF 都會優先翻譯成這個語言，也可以在右上角隨時改。',
+    fileLabel: '讀取本機 PDF',
+    fileCopy: '若要翻譯電腦裡的 PDF，請到擴充功能管理頁，把「允許存取檔案網址」設成 enable。',
+    shortcutLabel: '快捷鍵',
+    shortcutCopy: '若 Alt+T 沒反應，通常是 Chrome 沒有把快捷鍵指派給這個擴充功能；同時安裝開發版與商城版時尤其容易發生。',
+    checkingFileAccess: '正在檢查檔案網址存取權限...',
+    checkingShortcut: '正在檢查快捷鍵...',
+    openExtensions: '開啟管理擴充功能',
+    openShortcuts: '開啟快捷鍵設定',
+    recheck: '重新檢查',
+    done: '儲存並開始使用',
+    openedExtensions: '管理頁已開啟；把「允許存取檔案網址」設成 enable 後，回來按「重新檢查」。',
+    openedShortcuts: '快捷鍵設定頁已開啟；請確認「用氛圍閱讀翻譯目前分頁的 PDF」有設定為 Alt+T，或改成你想要的按鍵。',
+    cannotCheckFileAccess: 'Chrome 無法回報目前狀態；請到管理擴充功能確認「允許存取檔案網址」已設成 enable。',
+    fileAccessAllowed: '已允許存取檔案網址，可以讀取本機 PDF。',
+    fileAccessDenied: '尚未允許存取檔案網址；本機 PDF 需要開啟這個權限。',
+    shortcutAssigned: shortcut => `目前快捷鍵：${shortcut}`,
+    shortcutMissing: '目前沒有指派快捷鍵。請到 Chrome 快捷鍵設定頁手動指定 Alt+T，或先停用另一個占用 Alt+T 的擴充功能。',
+    shortcutUnknown: 'Chrome 無法回報快捷鍵狀態；請到快捷鍵設定頁確認。',
+    noPdfWelcomeStatus: '初次設定完成後，請開啟一個 PDF 分頁並點擊插件圖示或右鍵選單。',
+  },
+  en: {
+    lang: 'en',
+    kicker: 'First-run setup',
+    title: 'Welcome to Vibe Reading',
+    closeTitle: 'Close',
+    settingsTitle: 'Settings',
+    targetLabel: 'Default target language',
+    targetCopy: 'PDFs will be translated into this language by default. You can change it anytime from the top-right menu.',
+    fileLabel: 'Read local PDFs',
+    fileCopy: 'To translate PDFs from your computer, open the extension details page and enable "Allow access to file URLs".',
+    shortcutLabel: 'Keyboard shortcut',
+    shortcutCopy: 'If Alt+T does not respond, Chrome probably did not assign the shortcut to this extension. This is common when both the unpacked build and Web Store build are installed.',
+    checkingFileAccess: 'Checking file URL access...',
+    checkingShortcut: 'Checking shortcut...',
+    openExtensions: 'Open extension settings',
+    openShortcuts: 'Open shortcut settings',
+    recheck: 'Recheck',
+    done: 'Save and start',
+    openedExtensions: 'The extension settings page is open. Enable "Allow access to file URLs", then come back and click "Recheck".',
+    openedShortcuts: 'The shortcut settings page is open. Confirm that "用氛圍閱讀翻譯目前分頁的 PDF" is set to Alt+T, or choose another shortcut.',
+    cannotCheckFileAccess: 'Chrome cannot report the current state. Please confirm that "Allow access to file URLs" is enabled in extension settings.',
+    fileAccessAllowed: 'File URL access is enabled. Local PDFs can be opened.',
+    fileAccessDenied: 'File URL access is not enabled yet. Local PDFs need this permission.',
+    shortcutAssigned: shortcut => `Current shortcut: ${shortcut}`,
+    shortcutMissing: 'No shortcut is currently assigned. Open Chrome shortcut settings to assign Alt+T, or disable another extension that already uses Alt+T.',
+    shortcutUnknown: 'Chrome cannot report the shortcut state. Please confirm it in shortcut settings.',
+    noPdfWelcomeStatus: 'After setup, open a PDF tab, then click the extension icon or context menu.',
+  },
+};
 
 // ─── Init ─────────────────────────────────────────────────────────────────────
 document.addEventListener('DOMContentLoaded', async () => {
   try { els.appVer.textContent = 'v' + chrome.runtime.getManifest().version; } catch (_) {}
-  populateTargetSelect();
+  await populateTargetSelect();
   setupFontControl();
   setupDivider();
   setupSelectionAsk();
@@ -106,11 +184,15 @@ document.addEventListener('DOMContentLoaded', async () => {
 
   const params = new URLSearchParams(location.search);
   pdfUrl = params.get('file');
+  const isWelcome = params.get('welcome') === '1';
+  await setupFirstRunPrompt(isWelcome);
 
   await checkAI();
 
   if (!pdfUrl) {
-    setStatus('未指定 PDF。請開啟一個 PDF 分頁後點擊插件圖示或右鍵選單。');
+    setStatus(isWelcome
+      ? welcomeText.noPdfWelcomeStatus
+      : '未指定 PDF。請開啟一個 PDF 分頁後點擊插件圖示或右鍵選單。');
     return;
   }
 
@@ -131,13 +213,126 @@ document.addEventListener('DOMContentLoaded', async () => {
 });
 
 function populateTargetSelect() {
-  els.targetLang.innerHTML = TARGET_LANGS
-    .map(t => `<option value="${t.code}">${t.name}</option>`).join('');
-  chrome.storage.local.get('targetLang', ({ targetLang }) => {
+  fillLangSelect(els.targetLang);
+  els.targetLang.value = browserDefaultTarget();
+  return storageGet('targetLang').then(({ targetLang }) => {
     els.targetLang.value = targetLang || browserDefaultTarget();
   });
-  // set immediate default before storage resolves
-  els.targetLang.value = browserDefaultTarget();
+}
+
+function fillLangSelect(selectEl) {
+  selectEl.innerHTML = TARGET_LANGS
+    .map(t => `<option value="${t.code}">${t.name}</option>`).join('');
+}
+
+function storageGet(keys) {
+  return new Promise(resolve => chrome.storage.local.get(keys, resolve));
+}
+
+async function setupFirstRunPrompt(showWelcome) {
+  welcomeText = getWelcomeText();
+  applyWelcomeText(welcomeText);
+  fillLangSelect(els.welcomeTargetLang);
+  const { targetLang } = await storageGet('targetLang');
+  els.welcomeTargetLang.value = targetLang || browserDefaultTarget();
+
+  els.welcomeTargetLang.addEventListener('change', () => {
+    els.targetLang.value = els.welcomeTargetLang.value;
+    chrome.storage.local.set({ targetLang: els.welcomeTargetLang.value });
+    checkAI();
+  });
+  els.welcomeDone.addEventListener('click', saveWelcomeSettings);
+  els.welcomeClose.addEventListener('click', saveWelcomeSettings);
+  els.settingsBtn.addEventListener('click', openWelcomeSettings);
+  els.welcomeRecheck.addEventListener('click', refreshFileAccessStatus);
+  els.welcomeOpenShortcuts.addEventListener('click', () => {
+    chrome.tabs.create({ url: 'chrome://extensions/shortcuts' });
+    els.shortcutStatus.textContent = welcomeText.openedShortcuts;
+    els.shortcutStatus.className = 'file-access-status warn';
+  });
+  els.welcomeOpenExt.addEventListener('click', () => {
+    chrome.tabs.create({ url: `chrome://extensions/?id=${chrome.runtime.id}` });
+    els.fileAccessStatus.textContent = welcomeText.openedExtensions;
+    els.fileAccessStatus.className = 'file-access-status warn';
+  });
+
+  if (showWelcome) {
+    els.targetLang.value = els.welcomeTargetLang.value;
+    els.welcomeModal.style.display = 'flex';
+    refreshFileAccessStatus();
+    refreshShortcutStatus();
+  }
+}
+
+function openWelcomeSettings() {
+  els.welcomeTargetLang.value = els.targetLang.value || browserDefaultTarget();
+  els.welcomeModal.style.display = 'flex';
+  refreshFileAccessStatus();
+  refreshShortcutStatus();
+}
+
+function saveWelcomeSettings() {
+  const targetLang = els.welcomeTargetLang.value || browserDefaultTarget();
+  els.targetLang.value = targetLang;
+  chrome.storage.local.set({ targetLang, firstRunSetupDone: true });
+  els.welcomeModal.style.display = 'none';
+  checkAI();
+}
+
+function refreshFileAccessStatus() {
+  if (!chrome.extension?.isAllowedFileSchemeAccess) {
+    els.fileAccessStatus.textContent = welcomeText.cannotCheckFileAccess;
+    els.fileAccessStatus.className = 'file-access-status warn';
+    return;
+  }
+  chrome.extension.isAllowedFileSchemeAccess((allowed) => {
+    els.fileAccessStatus.textContent = allowed
+      ? welcomeText.fileAccessAllowed
+      : welcomeText.fileAccessDenied;
+    els.fileAccessStatus.className = `file-access-status ${allowed ? 'ok' : 'warn'}`;
+  });
+}
+
+function refreshShortcutStatus() {
+  if (!chrome.commands?.getAll) {
+    els.shortcutStatus.textContent = welcomeText.shortcutUnknown;
+    els.shortcutStatus.className = 'file-access-status warn';
+    return;
+  }
+  chrome.commands.getAll((commands) => {
+    const command = commands.find(c => c.name === 'translate-pdf');
+    const shortcut = command?.shortcut || '';
+    els.shortcutStatus.textContent = shortcut
+      ? welcomeText.shortcutAssigned(shortcut)
+      : welcomeText.shortcutMissing;
+    els.shortcutStatus.className = `file-access-status ${shortcut ? 'ok' : 'warn'}`;
+  });
+}
+
+function getWelcomeText() {
+  const langs = (navigator.languages?.length ? navigator.languages : [navigator.language || 'en'])
+    .map(l => String(l).toLowerCase());
+  return langs.some(l => l.startsWith('zh')) ? WELCOME_TEXT['zh-TW'] : WELCOME_TEXT.en;
+}
+
+function applyWelcomeText(text) {
+  els.welcomeModal.lang = text.lang;
+  els.welcomeKicker.textContent = text.kicker;
+  els.welcomeTitle.textContent = text.title;
+  els.welcomeClose.title = text.closeTitle;
+  els.settingsBtn.title = text.settingsTitle;
+  els.welcomeLangLabel.textContent = text.targetLabel;
+  els.welcomeLangCopy.textContent = text.targetCopy;
+  els.welcomeFileLabel.textContent = text.fileLabel;
+  els.welcomeFileCopy.textContent = text.fileCopy;
+  els.welcomeShortcutLabel.textContent = text.shortcutLabel;
+  els.welcomeShortcutCopy.textContent = text.shortcutCopy;
+  els.fileAccessStatus.textContent = text.checkingFileAccess;
+  els.shortcutStatus.textContent = text.checkingShortcut;
+  els.welcomeOpenExt.textContent = text.openExtensions;
+  els.welcomeOpenShortcuts.textContent = text.openShortcuts;
+  els.welcomeRecheck.textContent = text.recheck;
+  els.welcomeDone.textContent = text.done;
 }
 
 // ─── Translation font-size control (persisted) ──────────────────────────────────

@@ -1,7 +1,7 @@
 {
   "manifest_version": 3,
   "name": "氛圍閱讀 Vibe Reading",
-  "version": "1.3.3",
+  "version": "1.3.7",
   "description": "使用 Chrome 內建 Gemini Nano AI 將 PDF 逐段翻譯成繁體中文，點翻譯可雙向定位高亮原文段落，附 AI 摘要與反白問答，完全離線運行",
   "permissions": ["activeTab", "tabs", "storage", "contextMenus"],
   "host_permissions": ["<all_urls>"],

@@ -98,6 +98,16 @@ body {
 .font-btn:hover { border-color: var(--accent); color: var(--accent); }
 .font-btn:active { transform: scale(0.94); }
 
+.icon-btn {
+  width: 28px; height: 28px;
+  border: 1px solid var(--border); border-radius: 50%;
+  background: var(--surface-2); color: var(--text);
+  display: inline-flex; align-items: center; justify-content: center;
+  cursor: pointer; font-size: 14px; line-height: 1; flex-shrink: 0;
+}
+.icon-btn:hover { border-color: var(--accent); color: var(--accent); }
+.icon-btn:active { transform: scale(0.94); }
+
 .badge {
   font-size: 10px; padding: 3px 8px; border-radius: 10px;
   font-weight: 500; white-space: nowrap;
@@ -328,6 +338,66 @@ body {
   margin-top: 12px; font-size: 13px; color: var(--text); line-height: 1.8;
   white-space: pre-wrap; overflow-y: auto; flex: 1;
   border-top: 1px solid var(--border); padding-top: 10px;
+}
+
+/* ── First-run setup modal ─────────────────────────────────── */
+.welcome-modal {
+  position: fixed; inset: 0; z-index: 300;
+  display: flex; align-items: center; justify-content: center;
+  padding: 24px; background: rgba(10, 12, 16, 0.78);
+}
+.welcome-box {
+  width: min(520px, 94vw);
+  background: var(--surface);
+  border: 1px solid #2a3a5c;
+  border-radius: 12px;
+  padding: 22px;
+  box-shadow: 0 20px 70px rgba(0,0,0,0.72);
+}
+.welcome-head {
+  display: flex; align-items: flex-start; justify-content: space-between;
+  gap: 16px; margin-bottom: 18px;
+}
+.welcome-kicker {
+  font-size: 11px; color: var(--accent); font-weight: 700;
+  margin-bottom: 4px;
+}
+.welcome-head h1 {
+  font-size: 22px; line-height: 1.25; font-weight: 700; color: var(--text);
+}
+.welcome-close {
+  width: 30px; height: 30px; border: 1px solid var(--border);
+  border-radius: 50%; background: var(--surface-2); color: var(--muted);
+  cursor: pointer; font-size: 18px; line-height: 1;
+}
+.welcome-close:hover { color: var(--text); border-color: var(--accent); }
+.welcome-section {
+  padding: 14px 0;
+  border-top: 1px solid var(--border);
+}
+.welcome-label {
+  display: block; color: var(--text); font-size: 13px;
+  font-weight: 700; margin-bottom: 8px;
+}
+.welcome-select { width: 100%; font-size: 13px; padding: 8px 10px; }
+.welcome-copy {
+  margin-top: 8px; color: var(--muted); font-size: 13px; line-height: 1.7;
+}
+.file-access-status {
+  margin-top: 10px; padding: 8px 10px; border-radius: 6px;
+  background: var(--surface-2); border: 1px solid var(--border);
+  color: var(--muted); font-size: 12px; line-height: 1.5;
+}
+.file-access-status.ok { background: var(--ok-bg); color: var(--ok-fg); border-color: #31553b; }
+.file-access-status.warn { background: #332b15; color: var(--warn); border-color: #5f4f1d; }
+.welcome-actions { display: flex; justify-content: flex-end; gap: 8px; margin-top: 14px; }
+.welcome-actions.inline { justify-content: flex-start; flex-wrap: wrap; }
+.welcome-actions .btn:not(.btn-primary) {
+  background: var(--surface-2); color: var(--text);
+  border: 1px solid var(--border);
+}
+.welcome-actions .btn:not(.btn-primary):hover {
+  border-color: var(--accent); color: var(--accent);
 }
 
 /* ── Scrollbars ────────────────────────────────────────────── */

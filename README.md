@@ -36,6 +36,8 @@
 - **🧠 AI 摘要**：讀完整份論文後，頂部以 Gemini Nano 生成四大重點 —— 背景知識、相關研究、突破亮點、總結
 - **🤖 反白問 AI**：在論文中反白文字，直接向 Gemini Nano 提問；提問會附上 AI 摘要與該段前後文作為上下文，回答更精準（可隨時停止、視窗不鎖住可邊讀邊問）
 - **🌐 反白快速翻譯**：反白文字後點「翻譯」，面板立即顯示該段譯文——零輸入，輸入框保留供追問
+- **🧭 首次安裝導覽**：安裝後依瀏覽器語系顯示繁中／英文設定頁，提示選擇預設目標語言，並引導開啟「允許存取檔案網址」以讀取本機 PDF
+- **⚙️ 可重新開啟設定**：右上角齒輪可隨時重新選擇預設目標語言、檢查本機檔案權限
 - **✏️ 字卡編輯模式**：雙擊任一段譯文就地編輯，可手動修改文字、按 Enter 重新分段；失焦或 Ctrl+Enter 儲存、Esc 取消
 - **⌨️ Alt+T 熱鍵**：在任意 PDF 分頁按 Alt+T 一鍵開啟翻譯；也可點工具列圖示或右鍵選單
 - **🔍 PDF 獨立縮放**：Ctrl+滾輪／觸控板雙指只縮放左側 PDF（不連動整頁），平滑如原生；←/→ 翻頁
@@ -58,13 +60,35 @@
 2. **啟用 Chrome 內建 AI（僅首次，兩種安裝方式都需要）**：
    - `chrome://flags` → 啟用 **Prompt API** 與 **Translator API** → 重啟 Chrome
    - `chrome://components` → 更新 **Optimization Guide On Device Model**（約 2.4GB）
+   - 若要讀取本機 PDF，請到 `chrome://extensions` → 管理此擴充功能 → 開啟「允許存取檔案網址」
+
+## 📁 本機 PDF 注意事項
+
+Chrome 擴充功能預設**不能讀取 `file://` 本機檔案網址**。如果要翻譯電腦裡的 PDF，請手動開啟：
+
+1. 到 `chrome://extensions`
+2. 找到「氛圍閱讀 Vibe Reading」並點「詳細資料」或「管理擴充功能」
+3. 將「允許存取檔案網址」設成開啟 / enable
+
+若沒有開啟這個權限，線上 PDF 仍可使用，但本機 PDF 會無法載入。
 
 ## 🚀 使用
 
 1. 打開任何 PDF（例如 `https://arxiv.org/pdf/2507.02092`）
 2. 點工具列的擴充圖示，或在 PDF 頁面**右鍵 →「翻譯整份 PDF」**
 3. 新分頁開啟雙欄檢視器，自動開始翻譯
-4. 點翻譯定位原文、反白文字問 AI、看頂部 AI 摘要
+4. 需要更改預設語言或檢查本機檔案權限時，點右上角齒輪
+5. 點翻譯定位原文、反白文字問 AI、看頂部 AI 摘要
+
+## ⌨️ Alt+T 沒反應？
+
+Chrome 的 `commands.suggested_key` 只是建議快捷鍵；如果 `Alt+T` 已被其他擴充功能、開發版、Chrome 或作業系統占用，Chrome 可能不會把它指派給商城版。
+
+請到 `chrome://extensions/shortcuts` 檢查「氛圍閱讀 Vibe Reading」的快捷鍵：
+
+1. 找到「用氛圍閱讀翻譯目前分頁的 PDF」
+2. 確認它有被設成 `Alt+T`
+3. 如果同時安裝了開發版與商城版，請停用其中一個，或替其中一個改用其他快捷鍵
 
 ## 🧩 技術
 
@@ -110,6 +134,8 @@ MIT License
 - **🧠 AI Summary** by Gemini Nano: Background, Related Work, Highlights, Conclusion
 - **🤖 Ask-AI on selection**: highlight text and ask Gemini Nano; the prompt includes the AI summary and the surrounding paragraphs as context. Stoppable, and the panel is non-blocking so you can keep reading
 - **🌐 Quick-translate on selection**: hit "翻譯" on the floating bar and the panel instantly shows the translation — zero typing, with the input kept for follow-ups
+- **🧭 First-run guide**: shows Traditional Chinese or English based on browser language, lets you choose the default target language, and guides you to enable file URL access for local PDFs
+- **⚙️ Reopenable settings**: use the top-right gear anytime to update the default target language or check local file access
 - **✏️ Editable translation cards**: double-click any translation to edit in place — fix wording or re-paragraph with Enter; blur/Ctrl+Enter saves, Esc cancels
 - **⌨️ Alt+T hotkey** to open the translator on any PDF tab (also via toolbar icon or right-click menu)
 - **🔍 Independent PDF zoom**: Ctrl+wheel / trackpad pinch zooms only the left PDF (smooth, native-like); ←/→ flip pages
@@ -124,6 +150,22 @@ MIT License
 
 1. `chrome://extensions` → Developer mode → **Load unpacked** → select this folder (`lib/` is already bundled).
 2. First run (needed for both options): enable **Prompt API** & **Translator API** in `chrome://flags`, restart, then update **Optimization Guide On Device Model** in `chrome://components` (~2.4GB).
+
+## Local PDF Access
+
+Chrome extensions cannot read `file://` local file URLs by default. To translate PDFs from your computer, enable this manually:
+
+1. Go to `chrome://extensions`
+2. Open details / manage extension for "氛圍閱讀 Vibe Reading"
+3. Turn on **Allow access to file URLs**
+
+Online PDFs still work without this permission, but local PDFs will fail to load until it is enabled.
+
+## Alt+T Not Working?
+
+Chrome treats `commands.suggested_key` as a suggested shortcut. If `Alt+T` is already used by another extension, an unpacked development build, Chrome, or the operating system, Chrome may leave the Web Store build unassigned.
+
+Open `chrome://extensions/shortcuts`, find Vibe Reading, and confirm that "用氛圍閱讀翻譯目前分頁的 PDF" is assigned to `Alt+T`. If both the unpacked build and the Web Store build are installed, disable one of them or assign different shortcuts.
 
 ## Requirements
 

@@ -23,6 +23,7 @@
       <span id="srcLangInfo" class="src-info" title="自動偵測來源語言"></span>
       <label class="label" for="targetLang">翻譯成</label>
       <select id="targetLang" class="select"></select>
+      <button id="settingsBtn" class="icon-btn" title="設定">⚙</button>
       <span class="font-ctrl" title="調整右側翻譯字體大小">
         <button id="fontDec" class="font-btn">A−</button>
         <button id="fontInc" class="font-btn">A+</button>
@@ -91,6 +92,48 @@
         <button id="askStop" class="btn btn-stop ask-send" style="display:none">■ 停止</button>
       </div>
       <div id="askAnswer" class="ask-answer"></div>
+    </div>
+  </div>
+
+  <!-- First-run setup shown immediately after extension install -->
+  <div id="welcomeModal" class="welcome-modal" style="display:none">
+    <div class="welcome-box">
+      <div class="welcome-head">
+        <div>
+          <div id="welcomeKicker" class="welcome-kicker">初次設定</div>
+          <h1 id="welcomeTitle">歡迎使用氛圍閱讀</h1>
+        </div>
+        <button id="welcomeClose" class="welcome-close" title="關閉">×</button>
+      </div>
+
+      <div class="welcome-section">
+        <label id="welcomeLangLabel" class="welcome-label" for="welcomeTargetLang">預設目標語言</label>
+        <select id="welcomeTargetLang" class="select welcome-select"></select>
+        <p id="welcomeLangCopy" class="welcome-copy">之後每次開啟 PDF 都會優先翻譯成這個語言，也可以在右上角隨時改。</p>
+      </div>
+
+      <div class="welcome-section">
+        <div id="welcomeFileLabel" class="welcome-label">讀取本機 PDF</div>
+        <p id="welcomeFileCopy" class="welcome-copy">若要翻譯電腦裡的 PDF，請到擴充功能管理頁，把「允許存取檔案網址」設成 enable。</p>
+        <div id="fileAccessStatus" class="file-access-status">正在檢查檔案網址存取權限...</div>
+        <div class="welcome-actions inline">
+          <button id="welcomeOpenExt" class="btn btn-primary">開啟管理擴充功能</button>
+          <button id="welcomeRecheck" class="btn">重新檢查</button>
+        </div>
+      </div>
+
+      <div class="welcome-section">
+        <div id="welcomeShortcutLabel" class="welcome-label">快捷鍵</div>
+        <p id="welcomeShortcutCopy" class="welcome-copy">若 Alt+T 沒反應，通常是 Chrome 沒有把快捷鍵指派給這個擴充功能。</p>
+        <div id="shortcutStatus" class="file-access-status">正在檢查快捷鍵...</div>
+        <div class="welcome-actions inline">
+          <button id="welcomeOpenShortcuts" class="btn">開啟快捷鍵設定</button>
+        </div>
+      </div>
+
+      <div class="welcome-actions">
+        <button id="welcomeDone" class="btn btn-primary">儲存並開始使用</button>
+      </div>
     </div>
   </div>
 
