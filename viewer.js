@@ -388,6 +388,21 @@ async function checkAI() {
   );
 }
 
+function needsDownloadGesture(availability) {
+  return availability === 'downloadable' || availability === 'downloading';
+}
+
+function modelDownloadNeedsUserGestureError() {
+  const err = new Error('首次使用需要下載 Chrome 內建 AI 模型或語言包。請點擊「翻譯」按鈕開始下載；下載完成後之後就可以自動翻譯。');
+  err.name = 'ModelDownloadNeedsUserGesture';
+  return err;
+}
+
+function isDownloadGestureError(err) {
+  return err?.name === 'ModelDownloadNeedsUserGesture' ||
+    /Requires a user gesture/i.test(err?.message || '');
+}
+
 // ─── PDF source chip + tab title ─────────────────────────────────────────────────
 function showPdfSource() {
   const isFile = /^file:/i.test(pdfUrl);
@@ -909,12 +924,14 @@ async function detectSourceLang() {
   if ('LanguageDetector' in self) {
     try {
       const avail = await LanguageDetector.availability();
-      if (avail !== 'unavailable') {
+      if (avail === 'available') {
         const det = await LanguageDetector.create();
         const res = await det.detect(sample);
         if (res?.[0]?.detectedLanguage && res[0].detectedLanguage !== 'und') {
           return res[0].detectedLanguage;
         }
+      } else if (needsDownloadGesture(avail)) {
+        console.info('[PDF翻譯] 語言偵測模型尚未下載，先預設來源語言為 en。');
       }
     } catch (e) {
       console.warn('[PDF翻譯] 語言偵測失敗，預設 en：', e);
@@ -924,26 +941,31 @@ async function detectSourceLang() {
 }
 
 // ─── Translator init ──────────────────────────────────────────────────────────
-async function initTranslator(sourceLang, targetLang) {
+async function initTranslator(sourceLang, targetLang, isManual = false) {
   if (sourceLang === targetLang) sourceLang = sourceLang === 'en' ? 'fr' : 'en'; // avoid same-pair error
+  let downloadNeedsGesture = false;
 
   if ('Translator' in self) {
     try {
       const avail = await Translator.availability({ sourceLanguage: sourceLang, targetLanguage: targetLang });
       if (avail !== 'unavailable') {
-        if (avail === 'downloadable') { setStatus('首次使用：下載翻譯語言包...'); setProgress(0, '0%'); }
-        const t = await Translator.create({
-          sourceLanguage: sourceLang,
-          targetLanguage: targetLang,
-          monitor(m) {
-            m.addEventListener('downloadprogress', (e) => {
-              const pct = Math.round(e.loaded * 100);
-              setStatus(`下載翻譯語言包 ${pct}%（僅首次）...`);
-              setProgress(e.loaded, `${pct}%`);
-            });
-          },
-        });
-        return { type: 'translator', t, targetName: langName(targetLang) };
+        if (needsDownloadGesture(avail) && !isManual) {
+          downloadNeedsGesture = true;
+        } else {
+          if (avail === 'downloadable') { setStatus('首次使用：下載翻譯語言包...'); setProgress(0, '0%'); }
+          const t = await Translator.create({
+            sourceLanguage: sourceLang,
+            targetLanguage: targetLang,
+            monitor(m) {
+              m.addEventListener('downloadprogress', (e) => {
+                const pct = Math.round(e.loaded * 100);
+                setStatus(`下載翻譯語言包 ${pct}%（僅首次）...`);
+                setProgress(e.loaded, `${pct}%`);
+              });
+            },
+          });
+          return { type: 'translator', t, targetName: langName(targetLang) };
+        }
       }
     } catch (e) {
       console.warn('[PDF翻譯] Translator 初始化失敗，改用 Gemini Nano：', e);
@@ -951,23 +973,31 @@ async function initTranslator(sourceLang, targetLang) {
   }
 
   if ('LanguageModel' in self) {
-    setStatus('首次使用：載入 Gemini Nano 模型（約 2.4GB）...');
-    setIndeterminate(true);
-    const targetName = langName(targetLang);
-    const session = await LanguageModel.create({
-      initialPrompts: [{ role: 'system', content: `你是專業翻譯員。請將輸入的文字翻譯成${targetName}，只輸出翻譯結果，不加任何說明文字。` }],
-      monitor(m) {
-        m.addEventListener('downloadprogress', (e) => {
-          const pct = Math.round(e.loaded * 100);
-          setStatus(`下載 Gemini Nano 模型 ${pct}%（僅首次）...`);
-          setProgress(e.loaded, `${pct}%`);
+    const avail = await LanguageModel.availability();
+    if (avail !== 'unavailable') {
+      if (needsDownloadGesture(avail) && !isManual) {
+        downloadNeedsGesture = true;
+      } else {
+        setStatus('首次使用：載入 Gemini Nano 模型（約 2.4GB）...');
+        setIndeterminate(true);
+        const targetName = langName(targetLang);
+        const session = await LanguageModel.create({
+          initialPrompts: [{ role: 'system', content: `你是專業翻譯員。請將輸入的文字翻譯成${targetName}，只輸出翻譯結果，不加任何說明文字。` }],
+          monitor(m) {
+            m.addEventListener('downloadprogress', (e) => {
+              const pct = Math.round(e.loaded * 100);
+              setStatus(`下載 Gemini Nano 模型 ${pct}%（僅首次）...`);
+              setProgress(e.loaded, `${pct}%`);
+            });
+          },
         });
-      },
-    });
-    setIndeterminate(false);
-    return { type: 'lm', session, targetName };
+        setIndeterminate(false);
+        return { type: 'lm', session, targetName };
+      }
+    }
   }
 
+  if (downloadNeedsGesture) throw modelDownloadNeedsUserGestureError();
   throw new Error('無法初始化任何翻譯引擎。');
 }
 
@@ -991,7 +1021,7 @@ async function startTranslation(isManual) {
 
   try {
     setStatus('初始化翻譯引擎...');
-    translatorObj = await initTranslator(detectedSource, els.targetLang.value);
+    translatorObj = await initTranslator(detectedSource, els.targetLang.value, isManual);
 
     const total = paragraphs.length;
     const shells = paragraphs.map((p, i) => appendSegment(p, i));
@@ -1028,7 +1058,16 @@ async function startTranslation(isManual) {
       if (!summaryDone) generateSummary(); // deferred case
     }
   } catch (e) {
-    if (e.name !== 'AbortError') { showError(e.message); setStatus('發生錯誤'); }
+    if (e.name !== 'AbortError') {
+      if (!isManual && isDownloadGestureError(e)) {
+        clearError();
+        els.progressWrap.style.display = 'none';
+        setStatus('PDF 已載入；首次使用需點擊「翻譯」開始下載 Chrome 內建 AI 模型。');
+      } else {
+        showError(e.message);
+        setStatus('發生錯誤');
+      }
+    }
   } finally {
     swapButtons(false);
     abortCtrl = null;
@@ -1041,7 +1080,7 @@ async function generateSummary() {
   if (!('LanguageModel' in self)) return;
   try {
     const avail = await LanguageModel.availability();
-    if (avail === 'unavailable') return;
+    if (avail !== 'available') return;
   } catch { return; }
 
   summaryDone = true;
@@ -1088,6 +1127,11 @@ async function generateSummary() {
     session.destroy();
   } catch (e) {
     console.warn('[PDF翻譯] 摘要產生失敗：', e);
+    summaryDone = false;
+    if (isDownloadGestureError(e)) {
+      els.summary.style.display = 'none';
+      return;
+    }
     els.summary.innerHTML = `<div class="sum-head">🧠 AI 摘要</div><div class="sum-err">摘要產生失敗：${esc(e.message)}</div>`;
   }
 }
@@ -1375,7 +1419,7 @@ async function quickTranslateSelection(text) {
   els.askAnswer.textContent = '翻譯中…';
   try {
     if (!translatorObj) {
-      translatorObj = await initTranslator(detectedSource, els.targetLang.value);
+      translatorObj = await initTranslator(detectedSource, els.targetLang.value, true);
     }
     const translated = await doTranslate(translatorObj, text);
     if (gen !== quickTransGen) return;                       // superseded / closed
