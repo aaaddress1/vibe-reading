@@ -1,0 +1,51 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+  <meta charset="UTF-8">
+  <title>氛圍閱讀 — 設定</title>
+  <style>
+    body { font: 15px/1.6 -apple-system, "Segoe UI", system-ui, sans-serif; background: #1f2430; color: #e6e6e6; margin: 0; padding: 28px; }
+    .card { max-width: 560px; margin: 0 auto; background: #262c3a; border: 1px solid #3a4150; border-radius: 12px; padding: 24px 28px; }
+    h1 { font-size: 18px; margin: 0 0 4px; }
+    .sub { color: #9fb3c8; margin: 0 0 20px; font-size: 13px; }
+    .row { display: flex; align-items: center; justify-content: space-between; gap: 16px; padding: 14px 0; border-top: 1px solid #333b4a; }
+    .row:first-of-type { border-top: 0; }
+    label { font-weight: 600; }
+    .hint { color: #9fb3c8; font-size: 12px; margin-top: 4px; }
+    select { background: #2b3140; color: #e6e6e6; border: 1px solid #3a4150; border-radius: 8px; padding: 6px 10px; font: inherit; }
+    input[type="checkbox"] { width: 18px; height: 18px; }
+    .saved { color: #5fd38b; font-size: 13px; height: 18px; margin-top: 6px; }
+  </style>
+</head>
+<body>
+  <div class="card">
+    <h1>📖 氛圍閱讀設定</h1>
+    <p class="sub">網頁翻譯相關設定（變更即時生效，無需重新整理）</p>
+
+    <div class="row">
+      <div>
+        <label for="hoverModifier">懸停翻譯修飾鍵</label>
+        <div class="hint">在網頁上<strong>按住此鍵</strong>並將滑鼠移到段落上，即翻譯游標所指的那一段。</div>
+      </div>
+      <select id="hoverModifier">
+        <option value="Shift">Shift（預設）</option>
+        <option value="Alt">Alt / Option</option>
+        <option value="Control">Ctrl</option>
+        <option value="Meta">⌘ Command / Win</option>
+      </select>
+    </div>
+
+    <div class="row">
+      <div>
+        <label for="showBall">在網頁顯示懸浮球</label>
+        <div class="hint">常駐右下角的翻譯球（點擊＝整頁翻譯，預設開啟懸停翻譯）。關閉後仍可用工具列圖示／<code>Alt+T</code>／右鍵選單翻譯。</div>
+      </div>
+      <input type="checkbox" id="showBall">
+    </div>
+
+    <div class="saved" id="saved"></div>
+  </div>
+
+  <script src="options.js"></script>
+</body>
+</html>

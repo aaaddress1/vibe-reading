@@ -1,0 +1,130 @@
+/* ─────────────────────────────────────────────────────────────────────────────
+   Styles for the in-page immersive translator (content.js).
+   Injected into arbitrary web pages, so everything is namespaced and the
+   toolbar / popup reset inherited page styles with `all: revert`.
+   ───────────────────────────────────────────────────────────────────────────── */
+
+/* Inline bilingual translation node. `color: inherit` keeps it legible on any
+   page background; the tint + left border mark it as a translation. */
+.vibe-inline-translation {
+  display: block;
+  margin: 0.25em 0;
+  padding: 0.15em 0.5em;
+  border-left: 3px solid rgba(20, 140, 90, 0.55);
+  border-radius: 3px;
+  background: rgba(20, 140, 90, 0.08);
+  color: inherit;
+  font-size: inherit;
+  line-height: 1.5;
+  white-space: normal;
+}
+.vibe-inline-translation.vibe-loading {
+  opacity: 0.6;
+  font-style: italic;
+}
+.vibe-inline-translation.vibe-error {
+  border-left-color: rgba(200, 40, 40, 0.6);
+  background: rgba(200, 40, 40, 0.08);
+  color: #c0392b;
+}
+
+/* ─── Persistent floating ball + hover-reveal control panel ────────────────────
+   The ball is always visible (bottom-right). Click it to translate the whole
+   page; hover it to slide out the control panel (language, hover toggle, …). */
+#__vibe_toolbar {
+  all: revert;
+  position: fixed;
+  right: 16px;
+  bottom: 16px;
+  z-index: 2147483647;
+  display: flex;
+  flex-direction: row-reverse;   /* ball on the right; panel slides out to its left */
+  align-items: center;
+  gap: 8px;
+  font: 13px/1.2 -apple-system, "Segoe UI", system-ui, sans-serif;
+}
+#__vibe_toolbar * { all: revert; box-sizing: border-box; font: inherit; }
+
+#__vibe_toolbar .vibe-ball {
+  width: 44px;
+  height: 44px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 22px;
+  background: #1f2430;
+  color: #e6e6e6;
+  border: 1px solid #3a4150;
+  border-radius: 50%;
+  box-shadow: 0 6px 24px rgba(0, 0, 0, 0.35);
+  cursor: pointer;
+  user-select: none;
+}
+#__vibe_toolbar.vibe-active .vibe-ball { background: #2f7d52; border-color: #36995f; }
+
+#__vibe_toolbar .vibe-panel {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 12px;
+  background: #1f2430;
+  color: #e6e6e6;
+  border: 1px solid #3a4150;
+  border-radius: 10px;
+  box-shadow: 0 6px 24px rgba(0, 0, 0, 0.35);
+  max-width: 80vw;
+  opacity: 0;
+  transform: translateX(12px) scale(0.96);
+  transform-origin: right center;
+  pointer-events: none;
+  transition: opacity 0.15s ease, transform 0.15s ease;
+}
+#__vibe_toolbar:hover .vibe-panel,
+#__vibe_toolbar:focus-within .vibe-panel {
+  opacity: 1;
+  transform: none;
+  pointer-events: auto;
+}
+
+#__vibe_toolbar .vibe-tb-lang {
+  background: #2b3140;
+  color: #e6e6e6;
+  border: 1px solid #3a4150;
+  border-radius: 6px;
+  padding: 3px 6px;
+}
+#__vibe_toolbar .vibe-tb-hover { display: inline-flex; align-items: center; gap: 4px; white-space: nowrap; cursor: pointer; }
+#__vibe_toolbar .vibe-tb-settings,
+#__vibe_toolbar .vibe-tb-hide {
+  background: #3a4150;
+  color: #fff;
+  border: 0;
+  border-radius: 6px;
+  padding: 4px 9px;
+  cursor: pointer;
+}
+#__vibe_toolbar .vibe-tb-settings:hover,
+#__vibe_toolbar .vibe-tb-hide:hover { background: #4a5263; }
+#__vibe_toolbar .vibe-tb-status {
+  color: #9fb3c8;
+  white-space: nowrap;
+  max-width: 200px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* ─── Selection popup card ──────────────────────────────────────────────────── */
+#__vibe_sel_card {
+  all: revert;
+  position: absolute;
+  z-index: 2147483647;
+  max-width: 360px;
+  padding: 10px 12px;
+  background: #1f2430;
+  color: #f0f0f0;
+  border: 1px solid #3a4150;
+  border-radius: 8px;
+  box-shadow: 0 6px 24px rgba(0, 0, 0, 0.35);
+  font: 14px/1.5 -apple-system, "Segoe UI", system-ui, sans-serif;
+  white-space: pre-wrap;
+}
