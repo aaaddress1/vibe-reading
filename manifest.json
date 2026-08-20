@@ -2,8 +2,8 @@
   "manifest_version": 3,
   "name": "氛圍閱讀 Vibe Reading",
   "version": "1.3.8",
-  "description": "使用 Chrome 內建 Gemini Nano AI 將 PDF 逐段翻譯成繁體中文，點翻譯可雙向定位高亮原文段落，附 AI 摘要與反白問答，完全離線運行",
-  "permissions": ["activeTab", "tabs", "storage", "contextMenus"],
+  "description": "使用 Chrome 內建 Gemini Nano AI 翻譯 PDF 與一般網頁：PDF 逐段對照＋雙向定位高亮、網頁沈浸式行內翻譯（整頁／選取／懸停），附 AI 摘要與反白問答，完全離線運行",
+  "permissions": ["activeTab", "tabs", "storage", "contextMenus", "scripting"],
   "host_permissions": ["<all_urls>"],
   "icons": {
     "16": "icons/icon16.png",
@@ -13,6 +13,14 @@
   "background": {
     "service_worker": "background.js"
   },
+  "content_scripts": [
+    {
+      "matches": ["http://*/*", "https://*/*"],
+      "js": ["translate-core.js", "content.js"],
+      "css": ["content.css"],
+      "run_at": "document_idle"
+    }
+  ],
   "action": {
     "default_title": "氛圍閱讀 Vibe Reading（點擊開啟翻譯檢視器）",
     "default_icon": {
@@ -21,10 +29,14 @@
       "128": "icons/icon128.png"
     }
   },
+  "options_ui": {
+    "page": "options.html",
+    "open_in_tab": true
+  },
   "commands": {
     "translate-pdf": {
       "suggested_key": { "default": "Alt+T", "mac": "Alt+T" },
-      "description": "用氛圍閱讀翻譯目前分頁的 PDF"
+      "description": "用氛圍閱讀翻譯目前分頁（PDF 開檢視器，網頁就地翻譯）"
     }
   }
 }
