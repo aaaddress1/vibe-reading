@@ -1,7 +1,7 @@
 # 氛圍閱讀 Vibe Reading 📖
 
 > 向「沉浸式翻譯」致敬 — 但**完全離線、零 API Key、零雲端費用**。
-> 基於 Chrome 內建 AI（Gemini Nano / Translator API），在地端把整份 PDF 論文逐段翻成你的語言。
+> 基於 Chrome 內建 AI（Gemini Nano / Translator API），在地端把整份 PDF 論文與**任意網頁**逐段翻成你的語言。
 
 [![Buy Me a Coffee](https://img.buymeacoffee.com/button-api/?text=Buy%20me%20a%20coffee&slug=aaaddress1&button_colour=FFDD00&font_colour=000000&font_family=Cookie&outline_colour=000000&coffee_colour=ffffff)](https://www.buymeacoffee.com/aaaddress1)
 
@@ -21,7 +21,7 @@
 
 ## 這是什麼？
 
-一個 Chrome 擴充功能。打開 PDF（例如 arxiv 論文）後，**自動**把全文逐段翻譯，並排顯示在右側。所有 AI 推理都跑在你自己的電腦上 —— 論文內容**不會送到任何雲端**。
+一個 Chrome 擴充功能。打開 PDF（例如 arxiv 論文）後，**自動**把全文逐段翻譯，並排顯示在右側；在**一般網頁**上則以行內雙語對照就地翻譯。所有 AI 推理都跑在你自己的電腦上 —— 內容**不會送到任何雲端**。
 
 - 🔒 **完全離線**：用 Chrome 138+ 內建的 Gemini Nano / Translator API，資料不離開瀏覽器
 - 💸 **零成本**：沒有 OpenAI / Anthropic 帳單，沒有 rate limit
@@ -87,6 +87,14 @@ Chrome 擴充功能預設**不能讀取 `file://` 本機檔案網址**。如果�
 4. 需要更改預設語言或檢查本機檔案權限時，點右上角齒輪
 5. 點翻譯定位原文、反白文字問 AI、看頂部 AI 摘要
 
+**翻譯一般網頁：**
+
+1. 每個網頁右下角會有一顆翻譯球：**點球＝整頁翻譯**（再點切回原文）；也可用工具列圖示／`Alt+T`
+2. **懸停翻譯（預設開）**：按住 `Shift`（可改）將滑鼠移到段落即翻該段
+3. 滑鼠移到球上會展開選單：切換目標語言（與 PDF 共用）、開關懸停、⚙ 設定、隱藏球
+4. 只想翻一段：反白後**右鍵 →「翻譯選取的文字」**
+5. 設定（修飾鍵、是否顯示球）：球選單的 ⚙，或 `chrome://extensions` →「詳細資料」→「擴充功能選項」
+
 ## ⌨️ Alt+T 沒反應？
 
 Chrome 的 `commands.suggested_key` 只是建議快捷鍵；如果 `Alt+T` 已被其他擴充功能、開發版、Chrome 或作業系統占用，Chrome 可能不會把它指派給商城版。
@@ -96,14 +104,6 @@ Chrome 的 `commands.suggested_key` 只是建議快捷鍵；如果 `Alt+T` 已�
 1. 找到「用氛圍閱讀翻譯目前分頁的 PDF」
 2. 確認它有被設成 `Alt+T`
 3. 如果同時安裝了開發版與商城版，請停用其中一個，或替其中一個改用其他快捷鍵
-
-**翻譯一般網頁：**
-
-1. 每個網頁右下角會有一顆翻譯球：**點球＝整頁翻譯**（再點切回原文）；也可用工具列圖示／`Alt+T`
-2. **懸停翻譯（預設開）**：按住 `Shift`（可改）將滑鼠移到段落即翻該段
-3. 滑鼠移到球上會展開選單：切換目標語言（與 PDF 共用）、開關懸停、⚙ 設定、隱藏球
-4. 只想翻一段：反白後**右鍵 →「翻譯選取的文字」**
-5. 設定（修飾鍵、是否顯示球）：球選單的 ⚙，或 `chrome://extensions` →「詳細資料」→「擴充功能選項」
 
 ## 🧩 技術
 
@@ -127,6 +127,18 @@ Chrome 的 `commands.suggested_key` 只是建議快捷鍵；如果 `Alt+T` 已�
   - Apple Silicon（M 系列）符合需求；較舊的 Intel Mac 可能需靠 CPU 後援
 - 不支援 Android / iOS（Chrome 內建 AI 尚未開放）
 - ⚠️ Edge / Brave 等其他 Chromium 瀏覽器**無法使用**：`Translator` / `LanguageModel` 為 Chrome 專屬 API
+
+## 🙏 致謝
+
+感謝以下貢獻者讓這個專案變得更好：
+
+- **[@hackerpeanutjohn](https://github.com/hackerpeanutjohn)**
+  - [#3](https://github.com/aaaddress1/vibe-reading/pull/3) — **一般網頁沉浸式翻譯**：常駐翻譯球、整頁行內雙語對照、選取翻譯、修飾鍵懸停翻譯，並把翻譯引擎抽成 `translate-core.js`，讓 PDF 檢視器與一般網頁共用同一套實作
+  - [#1](https://github.com/aaaddress1/vibe-reading/pull/1) — PDF 雙欄／區塊翻譯改進，以及 macOS 安裝支援
+
+也向啟發本專案的「沉浸式翻譯」致敬。
+
+歡迎 issue 與 PR — [Issues](https://github.com/aaaddress1/vibe-reading/issues) 是個好的起點。
 
 ## 📄 授權
 
@@ -157,6 +169,11 @@ MIT License
 - **🔍 Independent PDF zoom**: Ctrl+wheel / trackpad pinch zooms only the left PDF (smooth, native-like); ←/→ flip pages
 - **📰 Two-column papers** detected and read column-by-column
 - **🔤 Adjustable translation font** (A−/A+, remembered) · **🌗 dark theme · fully offline · no API key**
+- **🌐 Immersive web-page translation**: a persistent translate ball sits on every page (can be disabled in options)
+  - **Click the ball = translate the whole page** inline and bilingually, following infinite scroll / SPA updates; click again to restore the original
+  - **Hover translate**: hold the modifier key (default `Shift`, configurable) and point at a paragraph to translate just that block
+  - **Selection translate**: highlight text, then right-click → "翻譯選取的文字" to translate only the selection in a popup card
+  - Hover the ball to reveal its panel: target language (shared with the PDF viewer), hover toggle, ⚙ options, hide ball
 
 ## Install
 
@@ -187,6 +204,16 @@ Open `chrome://extensions/shortcuts`, find Vibe Reading, and confirm that "用�
 
 - Chrome **138+** on Windows 10/11, macOS 13+, Linux, or Chromebook Plus
 - Not available on Android/iOS, nor on Edge/other browsers (`Translator` / `LanguageModel` are Chrome-only).
+
+## 🙏 Acknowledgements
+
+Thanks to the contributors who made this project better:
+
+- **[@hackerpeanutjohn](https://github.com/hackerpeanutjohn)**
+  - [#3](https://github.com/aaaddress1/vibe-reading/pull/3) — **immersive translation for regular web pages**: the persistent translate ball, inline bilingual full-page mode, selection translate, modifier-hover translate, and extracting the shared engine into `translate-core.js` so the PDF viewer and web pages share one implementation
+  - [#1](https://github.com/aaaddress1/vibe-reading/pull/1) — two-column / block translation improvements for PDFs, plus macOS setup support
+
+And a tribute to "Immersive Translate" for the inspiration.
 
 ## License
 
