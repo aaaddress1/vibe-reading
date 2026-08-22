@@ -983,6 +983,7 @@ async function generateSummary() {
 
   try {
     const session = await LanguageModel.create({
+      samplingMode: 'most-predictable',
       initialPrompts: [{ role: 'system', content: '你是學術論文分析助理，使用繁體中文、精煉地回答。' }],
     });
 
@@ -1356,6 +1357,7 @@ async function askNano() {
 
   try {
     askSession = await LanguageModel.create({
+      samplingMode: 'most-predictable',
       initialPrompts: [{ role: 'system', content: '你是研究助理。使用者會閱讀一篇論文並反白其中一段文字提問。請優先依據提供的「論文摘要」與「前後文」作答，用繁體中文回答；若需補充常識可適度補充並註明。' }],
     });
 
