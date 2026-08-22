@@ -991,17 +991,6 @@ async function generateSummary() {
     const fullText = paragraphs.map(p => p.text).join('\n');
     const text = fullText.slice(0, 7000);
 
-    const schema = {
-      type: 'object',
-      properties: {
-        background:  { type: 'string' },
-        relatedWork: { type: 'string' },
-        highlights:  { type: 'string' },
-        conclusion:  { type: 'string' },
-      },
-      required: ['background', 'relatedWork', 'highlights', 'conclusion'],
-    };
-
     const prompt =
       '以下是一篇論文的內文。請閱讀後，用繁體中文輸出四個面向的重點，每項約 2–4 句：\n' +
       '• background：研究背景與所需背景知識\n' +
@@ -1009,14 +998,8 @@ async function generateSummary() {
       '• highlights：此研究的突破與亮點\n' +
       '• conclusion：總結\n\n論文內文：\n' + text;
 
-    let obj;
-    try {
-      const raw = await session.prompt(prompt, { responseConstraint: schema });
-      obj = JSON.parse(raw);
-    } catch {
-      const raw = await session.prompt(prompt + '\n\n請以 JSON 物件輸出，鍵為 background, relatedWork, highlights, conclusion。');
-      obj = JSON.parse(raw.replace(/^[^{]*/, '').replace(/[^}]*$/, ''));
-    }
+    const raw = await session.prompt(prompt + '\n\n請以 JSON 物件輸出，鍵為 background, relatedWork, highlights, conclusion。');
+    const obj = JSON.parse(raw.replace(/^[^{]*/, '').replace(/[^}]*$/, ''));
 
     summaryObj = obj;          // reused as global context for the ask-AI feature
     renderSummary(obj);
