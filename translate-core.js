@@ -41,6 +41,34 @@
     return (TARGET_LANGS.find(t => t.code === code) || {}).name || code;
   }
 
+  // Chrome 154+ with MTP speculative decoding also validates sampling options
+  // during LanguageModel.availability().  Bare availability probes can therefore
+  // report `unavailable` (and emit the MTP compatibility error) even though an
+  // otherwise identical probe with greedy sampling returns `available`.
+  //
+  // translate-core.js loads before viewer.js, so normalise omitted availability
+  // options once here for both the shared translation engine and the PDF viewer.
+  const MTP_AVAILABILITY_OPTIONS = Object.freeze({ samplingMode: 'most-predictable' });
+
+  function installMtpAvailabilityCompatibility() {
+    if (!('LanguageModel' in self) || typeof LanguageModel.availability !== 'function') return;
+    if (LanguageModel.availability.__vibeMtpCompatible) return;
+
+    const nativeAvailability = LanguageModel.availability.bind(LanguageModel);
+    const wrappedAvailability = function (options) {
+      return nativeAvailability(options ?? MTP_AVAILABILITY_OPTIONS);
+    };
+    Object.defineProperty(wrappedAvailability, '__vibeMtpCompatible', { value: true });
+
+    try {
+      LanguageModel.availability = wrappedAvailability;
+    } catch (e) {
+      console.warn('[氛圍閱讀] 無法套用 Prompt API MTP availability 相容層：', e);
+    }
+  }
+
+  installMtpAvailabilityCompatibility();
+
   // ─── Source-language auto-detection ─────────────────────────────────────────
   // Caller passes a representative text sample (decoupled from any page state).
   function needsDownloadGesture(availability) {
@@ -115,7 +143,7 @@
     }
 
     if ('LanguageModel' in self) {
-      const avail = await LanguageModel.availability();
+      const avail = await LanguageModel.availability(MTP_AVAILABILITY_OPTIONS);
       if (avail !== 'unavailable') {
         if (needsDownloadGesture(avail) && !isManual) {
           downloadNeedsGesture = true;
@@ -160,7 +188,7 @@
     }
     if ('LanguageModel' in self) {
       try {
-        const a = await LanguageModel.availability();
+        const a = await LanguageModel.availability(MTP_AVAILABILITY_OPTIONS);
         if (a !== 'unavailable') return { ok: true, engine: 'Gemini Nano' };
       } catch (_) {}
     }
