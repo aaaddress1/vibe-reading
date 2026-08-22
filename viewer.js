@@ -983,23 +983,13 @@ async function generateSummary() {
 
   try {
     const session = await LanguageModel.create({
+      samplingMode: 'most-predictable',
       initialPrompts: [{ role: 'system', content: '你是學術論文分析助理，使用繁體中文、精煉地回答。' }],
     });
 
     // Nano has a limited context window — cap the input text.
     const fullText = paragraphs.map(p => p.text).join('\n');
     const text = fullText.slice(0, 7000);
-
-    const schema = {
-      type: 'object',
-      properties: {
-        background:  { type: 'string' },
-        relatedWork: { type: 'string' },
-        highlights:  { type: 'string' },
-        conclusion:  { type: 'string' },
-      },
-      required: ['background', 'relatedWork', 'highlights', 'conclusion'],
-    };
 
     const prompt =
       '以下是一篇論文的內文。請閱讀後，用繁體中文輸出四個面向的重點，每項約 2–4 句：\n' +
@@ -1008,14 +998,8 @@ async function generateSummary() {
       '• highlights：此研究的突破與亮點\n' +
       '• conclusion：總結\n\n論文內文：\n' + text;
 
-    let obj;
-    try {
-      const raw = await session.prompt(prompt, { responseConstraint: schema });
-      obj = JSON.parse(raw);
-    } catch {
-      const raw = await session.prompt(prompt + '\n\n請以 JSON 物件輸出，鍵為 background, relatedWork, highlights, conclusion。');
-      obj = JSON.parse(raw.replace(/^[^{]*/, '').replace(/[^}]*$/, ''));
-    }
+    const raw = await session.prompt(prompt + '\n\n請以 JSON 物件輸出，鍵為 background, relatedWork, highlights, conclusion。');
+    const obj = JSON.parse(raw.replace(/^[^{]*/, '').replace(/[^}]*$/, ''));
 
     summaryObj = obj;          // reused as global context for the ask-AI feature
     renderSummary(obj);
@@ -1356,6 +1340,7 @@ async function askNano() {
 
   try {
     askSession = await LanguageModel.create({
+      samplingMode: 'most-predictable',
       initialPrompts: [{ role: 'system', content: '你是研究助理。使用者會閱讀一篇論文並反白其中一段文字提問。請優先依據提供的「論文摘要」與「前後文」作答，用繁體中文回答；若需補充常識可適度補充並註明。' }],
     });
 
