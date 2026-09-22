@@ -115,7 +115,7 @@
     }
 
     if ('LanguageModel' in self) {
-      const avail = await LanguageModel.availability();
+      const avail = await LanguageModel.availability({ samplingMode: 'most-predictable' });
       if (avail !== 'unavailable') {
         if (needsDownloadGesture(avail) && !isManual) {
           downloadNeedsGesture = true;
@@ -124,6 +124,7 @@
           onIndeterminate(true);
           const targetName = langName(targetLang);
           const session = await LanguageModel.create({
+            samplingMode: 'most-predictable',
             initialPrompts: [{ role: 'system', content: `你是專業翻譯員。請將輸入的文字翻譯成${targetName}，只輸出翻譯結果，不加任何說明文字。` }],
             monitor(m) {
               m.addEventListener('downloadprogress', (e) => {
@@ -159,7 +160,7 @@
     }
     if ('LanguageModel' in self) {
       try {
-        const a = await LanguageModel.availability();
+        const a = await LanguageModel.availability({ samplingMode: 'most-predictable' });
         if (a !== 'unavailable') return { ok: true, engine: 'Gemini Nano' };
       } catch (_) {}
     }

@@ -358,7 +358,7 @@ async function checkAI() {
   }
   if ('LanguageModel' in self) {
     try {
-      const a = await LanguageModel.availability();
+      const a = await LanguageModel.availability({ samplingMode: 'most-predictable' });
       if (a !== 'unavailable') { badge.textContent = 'Gemini Nano ✓'; badge.className = 'badge badge-ok'; return; }
     } catch (_) {}
   }
@@ -970,19 +970,30 @@ async function startTranslation(isManual) {
 }
 
 // ─── AI Summary (requirement 5, Gemini Nano) ─────────────────────────────────────
+function validateSummaryObject(obj) {
+  const keys = ['background', 'relatedWork', 'highlights', 'conclusion'];
+  if (!obj || typeof obj !== 'object' || Array.isArray(obj) ||
+      keys.some(key => typeof obj[key] !== 'string' || !obj[key].trim())) {
+    throw new Error('Gemini Nano returned an incomplete summary payload.');
+  }
+  return obj;
+}
+
 async function generateSummary() {
   if (summaryDone) return;
   if (!('LanguageModel' in self)) return;
   try {
-    const avail = await LanguageModel.availability();
+    const avail = await LanguageModel.availability({ samplingMode: 'most-predictable' });
     if (avail !== 'available') return;
   } catch { return; }
 
   summaryDone = true;
   renderSummaryShell();
 
+  let session;
   try {
-    const session = await LanguageModel.create({
+    session = await LanguageModel.create({
+      samplingMode: 'most-predictable',
       initialPrompts: [{ role: 'system', content: '你是學術論文分析助理，使用繁體中文、精煉地回答。' }],
     });
 
@@ -1011,15 +1022,15 @@ async function generateSummary() {
     let obj;
     try {
       const raw = await session.prompt(prompt, { responseConstraint: schema });
-      obj = JSON.parse(raw);
-    } catch {
-      const raw = await session.prompt(prompt + '\n\n請以 JSON 物件輸出，鍵為 background, relatedWork, highlights, conclusion。');
-      obj = JSON.parse(raw.replace(/^[^{]*/, '').replace(/[^}]*$/, ''));
+      obj = validateSummaryObject(JSON.parse(raw));
+    } catch (constraintError) {
+      console.info('[PDF翻譯] constrained summary unavailable; falling back to plain JSON output:', constraintError);
+      const raw = await session.prompt(prompt + '\n\n請只輸出 JSON 物件，不要加入其他文字。鍵必須完整包含 background, relatedWork, highlights, conclusion，且四個值都必須是非空字串。');
+      obj = validateSummaryObject(JSON.parse(raw.replace(/^[^{]*/, '').replace(/[^}]*$/, '')));
     }
 
     summaryObj = obj;          // reused as global context for the ask-AI feature
     renderSummary(obj);
-    session.destroy();
   } catch (e) {
     console.warn('[PDF翻譯] 摘要產生失敗：', e);
     summaryDone = false;
@@ -1028,6 +1039,8 @@ async function generateSummary() {
       return;
     }
     els.summary.innerHTML = `<div class="sum-head">🧠 AI 摘要</div><div class="sum-err">摘要產生失敗：${esc(e.message)}</div>`;
+  } finally {
+    try { session?.destroy(); } catch (_) {}
   }
 }
 
@@ -1356,6 +1369,7 @@ async function askNano() {
 
   try {
     askSession = await LanguageModel.create({
+      samplingMode: 'most-predictable',
       initialPrompts: [{ role: 'system', content: '你是研究助理。使用者會閱讀一篇論文並反白其中一段文字提問。請優先依據提供的「論文摘要」與「前後文」作答，用繁體中文回答；若需補充常識可適度補充並註明。' }],
     });
 
