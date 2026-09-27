@@ -97,6 +97,8 @@ Chrome 擴充功能預設**不能讀取 `file://` 本機檔案網址**。如果�
 
 ## ⌨️ Alt+T 沒反應？
 
+選取文字翻譯的預設快捷鍵為 `Alt+S`（一般網頁適用，不包含瀏覽器內建 PDF 閱讀器）。在網頁反白文字後按快捷鍵，即以浮卡顯示譯文。可到擴充功能設定中的「選取翻譯快捷鍵」查看目前按鍵，點「設定快捷鍵」變更或移除。Edge 可直接開啟 `edge://extensions/shortcuts`，Chrome 則為 `chrome://extensions/shortcuts`。若快捷鍵衝突未自動指派，請手動設定。
+
 Chrome 的 `commands.suggested_key` 只是建議快捷鍵；如果 `Alt+T` 已被其他擴充功能、開發版、Chrome 或作業系統占用，Chrome 可能不會把它指派給商城版。
 
 請到 `chrome://extensions/shortcuts` 檢查「氛圍閱讀 Vibe Reading」的快捷鍵：
@@ -195,6 +197,8 @@ Chrome extensions cannot read `file://` local file URLs by default. To translate
 Online PDFs still work without this permission, but local PDFs will fail to load until it is enabled.
 
 ## Alt+T Not Working?
+
+**Translate selected text:** select text on a regular webpage and press `Alt+S` to show its translation in a floating card. This shortcut does not apply to the browser's built-in PDF viewer. In the extension options, **選取翻譯快捷鍵** (Selection shortcut) shows the current binding; click **設定快捷鍵** (Configure) to change or remove it. You can also open `edge://extensions/shortcuts` in Edge or `chrome://extensions/shortcuts` in Chrome and find **用氛圍閱讀翻譯選取的文字** under Vibe Reading. If the suggested shortcut conflicts with another binding, assign one manually. After updating an unpacked extension, reload it and refresh your webpage.
 
 Chrome treats `commands.suggested_key` as a suggested shortcut. If `Alt+T` is already used by another extension, an unpacked development build, Chrome, or the operating system, Chrome may leave the Web Store build unassigned.
 

@@ -34,6 +34,10 @@
     "open_in_tab": true
   },
   "commands": {
+    "translate-selection": {
+      "suggested_key": { "default": "Alt+S", "mac": "Alt+S" },
+      "description": "用氛圍閱讀翻譯選取的文字"
+    },
     "translate-pdf": {
       "suggested_key": { "default": "Alt+T", "mac": "Alt+T" },
       "description": "用氛圍閱讀翻譯目前分頁（PDF 開檢視器，網頁就地翻譯）"
