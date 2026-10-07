@@ -12,7 +12,10 @@
     .row:first-of-type { border-top: 0; }
     label { font-weight: 600; }
     .hint { color: #9fb3c8; font-size: 12px; margin-top: 4px; }
-    select { background: #2b3140; color: #e6e6e6; border: 1px solid #3a4150; border-radius: 8px; padding: 6px 10px; font: inherit; }
+    select, button { background: #2b3140; color: #e6e6e6; border: 1px solid #3a4150; border-radius: 8px; padding: 6px 10px; font: inherit; }
+    button { cursor: pointer; flex-shrink: 0; }
+    button:hover { background: #333b4a; border-color: #9fb3c8; }
+    button:focus-visible { outline: 2px solid #9fb3c8; outline-offset: 2px; }
     input[type="checkbox"] { width: 18px; height: 18px; }
     .saved { color: #5fd38b; font-size: 13px; height: 18px; margin-top: 6px; }
   </style>
@@ -41,6 +44,15 @@
         <div class="hint">常駐右下角的翻譯球（點擊＝整頁翻譯，預設開啟懸停翻譯）。關閉後仍可用工具列圖示／<code>Alt+T</code>／右鍵選單翻譯。</div>
       </div>
       <input type="checkbox" id="showBall">
+    </div>
+
+    <div class="row">
+      <div>
+        <label for="configureShortcuts">選取翻譯快捷鍵</label>
+        <div class="hint">目前：<strong id="selectionShortcut">…</strong></div>
+        <div class="hint">在一般網頁反白文字後按快捷鍵翻譯。可在瀏覽器中變更或移除快捷鍵。</div>
+      </div>
+      <button type="button" id="configureShortcuts">設定快捷鍵</button>
     </div>
 
     <div class="saved" id="saved"></div>

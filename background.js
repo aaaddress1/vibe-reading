@@ -134,9 +134,11 @@ chrome.runtime.onMessage.addListener((msg) => {
 // ─── Toolbar icon click ─────────────────────────────────────────────────────────
 chrome.action.onClicked.addListener(handleTrigger);
 
-// ─── Keyboard shortcut (Alt+T) ────────────────────────────────────────────────
+// ─── Keyboard shortcuts (customizable in the browser's extension settings) ───
 chrome.commands.onCommand.addListener(async (command) => {
-  if (command !== 'translate-pdf') return;
+  if (command !== 'translate-pdf' && command !== 'translate-selection') return;
   const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
-  if (tab) handleTrigger(tab);
+  if (!tab) return;
+  if (command === 'translate-selection') await translateSelection(tab);
+  else await handleTrigger(tab);
 });
