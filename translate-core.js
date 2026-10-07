@@ -41,6 +41,38 @@
     return (TARGET_LANGS.find(t => t.code === code) || {}).name || code;
   }
 
+  // ─── Browser branding ───────────────────────────────────────────────────────
+  // Same extension APIs on Chrome and Edge; only settings-page URLs and the
+  // built-in language model behind the Prompt API differ.
+  const IS_EDGE = /\bEdg\//.test(navigator.userAgent);
+  const BROWSER = IS_EDGE
+    ? { name: 'Edge',   scheme: 'edge',   llm: 'Edge 內建 AI', llmSize: '' }
+    : { name: 'Chrome', scheme: 'chrome', llm: 'Gemini Nano', llmSize: '（約 2.4GB）' };
+
+  // ─── Prompt API wrappers ────────────────────────────────────────────────────
+  // samplingMode keeps sessions compatible with Chrome's MTP speculative
+  // decoding. A runtime that rejects the option (e.g. an unknown enum value
+  // throws TypeError) gets retried without it.
+  const LM_SAMPLING = { samplingMode: 'most-predictable' };
+
+  async function lmAvailability() {
+    try {
+      return await LanguageModel.availability(LM_SAMPLING);
+    } catch (e) {
+      if (e?.name !== 'TypeError') throw e;
+      return await LanguageModel.availability();
+    }
+  }
+
+  async function lmCreate(options) {
+    try {
+      return await LanguageModel.create({ ...LM_SAMPLING, ...options });
+    } catch (e) {
+      if (e?.name !== 'TypeError') throw e;
+      return await LanguageModel.create(options);
+    }
+  }
+
   function targetLocale(code) {
     const locales = {
       'zh-Hant': 'zh-TW',
@@ -78,7 +110,7 @@
   }
 
   function modelDownloadNeedsUserGestureError() {
-    const err = new Error('首次使用需要下載 Chrome 內建 AI 模型或語言包。請由翻譯按鈕開始下載；下載完成後之後就可以自動翻譯。');
+    const err = new Error(`首次使用需要下載 ${BROWSER.name} 內建 AI 模型或語言包。請由翻譯按鈕開始下載；下載完成後之後就可以自動翻譯。`);
     err.name = 'ModelDownloadNeedsUserGesture';
     return err;
   }
@@ -140,26 +172,25 @@
           }
         }
       } catch (e) {
-        console.warn('[氛圍閱讀] Translator 初始化失敗，改用 Gemini Nano：', e);
+        console.warn(`[氛圍閱讀] Translator 初始化失敗，改用 ${BROWSER.llm}：`, e);
       }
     }
 
     if ('LanguageModel' in self) {
-      const avail = await LanguageModel.availability({ samplingMode: 'most-predictable' });
+      const avail = await lmAvailability();
       if (avail !== 'unavailable') {
         if (needsDownloadGesture(avail) && !isManual) {
           downloadNeedsGesture = true;
         } else {
-          onStatus('首次使用：載入 Gemini Nano 模型（約 2.4GB）...');
+          onStatus(`首次使用：載入 ${BROWSER.llm} 模型${BROWSER.llmSize}...`);
           onIndeterminate(true);
           const targetName = langName(targetLang);
-          const session = await LanguageModel.create({
-            samplingMode: 'most-predictable',
+          const session = await lmCreate({
             initialPrompts: [{ role: 'system', content: translationSystemPrompt(targetLang) }],
             monitor(m) {
               m.addEventListener('downloadprogress', (e) => {
                 const pct = Math.round(e.loaded * 100);
-                onStatus(`下載 Gemini Nano 模型 ${pct}%（僅首次）...`);
+                onStatus(`下載 ${BROWSER.llm} 模型 ${pct}%（僅首次）...`);
                 onProgress(e.loaded, `${pct}%`);
               });
             },
@@ -190,8 +221,8 @@
     }
     if ('LanguageModel' in self) {
       try {
-        const a = await LanguageModel.availability({ samplingMode: 'most-predictable' });
-        if (a !== 'unavailable') return { ok: true, engine: 'Gemini Nano' };
+        const a = await lmAvailability();
+        if (a !== 'unavailable') return { ok: true, engine: BROWSER.llm };
       } catch (_) {}
     }
     return { ok: false, engine: null };
@@ -205,5 +236,8 @@
     initTranslator,
     doTranslate,
     checkAvailability,
+    BROWSER,
+    lmAvailability,
+    lmCreate,
   };
 })();

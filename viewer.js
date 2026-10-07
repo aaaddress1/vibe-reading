@@ -15,6 +15,9 @@ const {
   detectSourceLang,
   initTranslator,
   doTranslate,
+  BROWSER,
+  lmAvailability,
+  lmCreate,
 } = window.VibeTranslate;
 
 // ─── DOM refs ─────────────────────────────────────────────────────────────────
@@ -100,7 +103,7 @@ const WELCOME_TEXT = {
     fileLabel: '讀取本機 PDF',
     fileCopy: '若要翻譯電腦裡的 PDF，請到擴充功能管理頁，把「允許存取檔案網址」設成 enable。',
     shortcutLabel: '快捷鍵',
-    shortcutCopy: '若 Alt+T 沒反應，通常是 Chrome 沒有把快捷鍵指派給這個擴充功能；同時安裝開發版與商城版時尤其容易發生。',
+    shortcutCopy: `若 Alt+T 沒反應，通常是 ${BROWSER.name} 沒有把快捷鍵指派給這個擴充功能；同時安裝開發版與商城版時尤其容易發生。`,
     checkingFileAccess: '正在檢查檔案網址存取權限...',
     checkingShortcut: '正在檢查快捷鍵...',
     openExtensions: '開啟管理擴充功能',
@@ -109,12 +112,12 @@ const WELCOME_TEXT = {
     done: '儲存並開始使用',
     openedExtensions: '管理頁已開啟；把「允許存取檔案網址」設成 enable 後，回來按「重新檢查」。',
     openedShortcuts: '快捷鍵設定頁已開啟；請確認「用氛圍閱讀翻譯目前分頁的 PDF」有設定為 Alt+T，或改成你想要的按鍵。',
-    cannotCheckFileAccess: 'Chrome 無法回報目前狀態；請到管理擴充功能確認「允許存取檔案網址」已設成 enable。',
+    cannotCheckFileAccess: `${BROWSER.name} 無法回報目前狀態；請到管理擴充功能確認「允許存取檔案網址」已設成 enable。`,
     fileAccessAllowed: '已允許存取檔案網址，可以讀取本機 PDF。',
     fileAccessDenied: '尚未允許存取檔案網址；本機 PDF 需要開啟這個權限。',
     shortcutAssigned: shortcut => `目前快捷鍵：${shortcut}`,
-    shortcutMissing: '目前沒有指派快捷鍵。請到 Chrome 快捷鍵設定頁手動指定 Alt+T，或先停用另一個占用 Alt+T 的擴充功能。',
-    shortcutUnknown: 'Chrome 無法回報快捷鍵狀態；請到快捷鍵設定頁確認。',
+    shortcutMissing: `目前沒有指派快捷鍵。請到 ${BROWSER.name} 快捷鍵設定頁手動指定 Alt+T，或先停用另一個占用 Alt+T 的擴充功能。`,
+    shortcutUnknown: `${BROWSER.name} 無法回報快捷鍵狀態；請到快捷鍵設定頁確認。`,
     noPdfWelcomeStatus: '初次設定完成後，請開啟一個 PDF 分頁並點擊插件圖示或右鍵選單。',
   },
   en: {
@@ -128,7 +131,7 @@ const WELCOME_TEXT = {
     fileLabel: 'Read local PDFs',
     fileCopy: 'To translate PDFs from your computer, open the extension details page and enable "Allow access to file URLs".',
     shortcutLabel: 'Keyboard shortcut',
-    shortcutCopy: 'If Alt+T does not respond, Chrome probably did not assign the shortcut to this extension. This is common when both the unpacked build and Web Store build are installed.',
+    shortcutCopy: `If Alt+T does not respond, ${BROWSER.name} probably did not assign the shortcut to this extension. This is common when both the unpacked build and store build are installed.`,
     checkingFileAccess: 'Checking file URL access...',
     checkingShortcut: 'Checking shortcut...',
     openExtensions: 'Open extension settings',
@@ -137,12 +140,12 @@ const WELCOME_TEXT = {
     done: 'Save and start',
     openedExtensions: 'The extension settings page is open. Enable "Allow access to file URLs", then come back and click "Recheck".',
     openedShortcuts: 'The shortcut settings page is open. Confirm that "用氛圍閱讀翻譯目前分頁的 PDF" is set to Alt+T, or choose another shortcut.',
-    cannotCheckFileAccess: 'Chrome cannot report the current state. Please confirm that "Allow access to file URLs" is enabled in extension settings.',
+    cannotCheckFileAccess: `${BROWSER.name} cannot report the current state. Please confirm that "Allow access to file URLs" is enabled in extension settings.`,
     fileAccessAllowed: 'File URL access is enabled. Local PDFs can be opened.',
     fileAccessDenied: 'File URL access is not enabled yet. Local PDFs need this permission.',
     shortcutAssigned: shortcut => `Current shortcut: ${shortcut}`,
-    shortcutMissing: 'No shortcut is currently assigned. Open Chrome shortcut settings to assign Alt+T, or disable another extension that already uses Alt+T.',
-    shortcutUnknown: 'Chrome cannot report the shortcut state. Please confirm it in shortcut settings.',
+    shortcutMissing: `No shortcut is currently assigned. Open ${BROWSER.name} shortcut settings to assign Alt+T, or disable another extension that already uses Alt+T.`,
+    shortcutUnknown: `${BROWSER.name} cannot report the shortcut state. Please confirm it in shortcut settings.`,
     noPdfWelcomeStatus: 'After setup, open a PDF tab, then click the extension icon or context menu.',
   },
 };
@@ -150,6 +153,7 @@ const WELCOME_TEXT = {
 // ─── Init ─────────────────────────────────────────────────────────────────────
 document.addEventListener('DOMContentLoaded', async () => {
   try { els.appVer.textContent = 'v' + chrome.runtime.getManifest().version; } catch (_) {}
+  document.querySelectorAll('.llm-name').forEach(el => { el.textContent = BROWSER.llm; });
   await populateTargetSelect();
   setupFontControl();
   setupDivider();
@@ -233,12 +237,12 @@ async function setupFirstRunPrompt(showWelcome) {
   els.settingsBtn.addEventListener('click', openWelcomeSettings);
   els.welcomeRecheck.addEventListener('click', refreshFileAccessStatus);
   els.welcomeOpenShortcuts.addEventListener('click', () => {
-    chrome.tabs.create({ url: 'chrome://extensions/shortcuts' });
+    chrome.tabs.create({ url: `${BROWSER.scheme}://extensions/shortcuts` });
     els.shortcutStatus.textContent = welcomeText.openedShortcuts;
     els.shortcutStatus.className = 'file-access-status warn';
   });
   els.welcomeOpenExt.addEventListener('click', () => {
-    chrome.tabs.create({ url: `chrome://extensions/?id=${chrome.runtime.id}` });
+    chrome.tabs.create({ url: `${BROWSER.scheme}://extensions/?id=${chrome.runtime.id}` });
     els.fileAccessStatus.textContent = welcomeText.openedExtensions;
     els.fileAccessStatus.className = 'file-access-status warn';
   });
@@ -358,20 +362,24 @@ async function checkAI() {
   }
   if ('LanguageModel' in self) {
     try {
-      const a = await LanguageModel.availability({ samplingMode: 'most-predictable' });
-      if (a !== 'unavailable') { badge.textContent = 'Gemini Nano ✓'; badge.className = 'badge badge-ok'; return; }
+      const a = await lmAvailability();
+      if (a !== 'unavailable') { badge.textContent = `${BROWSER.llm} ✓`; badge.className = 'badge badge-ok'; return; }
     } catch (_) {}
   }
 
   badge.textContent = 'AI 不可用';
   badge.className = 'badge badge-err';
   els.translateBtn.disabled = true;
-  showError(
-    'Chrome 內建 AI 無法使用。請確認：\n' +
-    '1. Chrome 版本 ≥ 138\n' +
-    '2. chrome://flags 啟用「Prompt API」與「Translator API」\n' +
-    '3. chrome://components 更新「Optimization Guide On Device Model」\n' +
-    '4. 重新啟動 Chrome'
+  showError(BROWSER.scheme === 'edge'
+    ? 'Edge 內建 AI 無法使用。請確認：\n' +
+      '1. Edge 版本 ≥ 148（翻譯與語言偵測）\n' +
+      '2. AI 摘要與反白問答：到 edge://flags 啟用「Prompt API for Phi mini」\n' +
+      '3. 重新啟動 Edge'
+    : 'Chrome 內建 AI 無法使用。請確認：\n' +
+      '1. Chrome 版本 ≥ 138\n' +
+      '2. chrome://flags 啟用「Prompt API」與「Translator API」\n' +
+      '3. chrome://components 更新「Optimization Guide On Device Model」\n' +
+      '4. 重新啟動 Chrome'
   );
 }
 
@@ -400,7 +408,7 @@ async function loadAndRenderPdf() {
   els.progressWrap.style.display = 'flex';
 
   const resp = await fetch(pdfUrl);
-  if (!resp.ok) throw new Error(`HTTP ${resp.status}（若為本機檔案，請到 chrome://extensions 開啟「允許存取檔案網址」）`);
+  if (!resp.ok) throw new Error(`HTTP ${resp.status}（若為本機檔案，請到 ${BROWSER.scheme}://extensions 開啟「允許存取檔案網址」）`);
   const buf = await resp.arrayBuffer();
   setIndeterminate(false);
 
@@ -957,7 +965,7 @@ async function startTranslation(isManual) {
       if (!isManual && isDownloadGestureError(e)) {
         clearError();
         els.progressWrap.style.display = 'none';
-        setStatus('PDF 已載入；首次使用需點擊「翻譯」開始下載 Chrome 內建 AI 模型。');
+        setStatus(`PDF 已載入；首次使用需點擊「翻譯」開始下載 ${BROWSER.name} 內建 AI 模型。`);
       } else {
         showError(e.message);
         setStatus('發生錯誤');
@@ -974,7 +982,7 @@ function validateSummaryObject(obj) {
   const keys = ['background', 'relatedWork', 'highlights', 'conclusion'];
   if (!obj || typeof obj !== 'object' || Array.isArray(obj) ||
       keys.some(key => typeof obj[key] !== 'string' || !obj[key].trim())) {
-    throw new Error('Gemini Nano returned an incomplete summary payload.');
+    throw new Error(`${BROWSER.llm} returned an incomplete summary payload.`);
   }
   return obj;
 }
@@ -983,7 +991,7 @@ async function generateSummary() {
   if (summaryDone) return;
   if (!('LanguageModel' in self)) return;
   try {
-    const avail = await LanguageModel.availability({ samplingMode: 'most-predictable' });
+    const avail = await lmAvailability();
     if (avail !== 'available') return;
   } catch { return; }
 
@@ -992,8 +1000,7 @@ async function generateSummary() {
 
   let session;
   try {
-    session = await LanguageModel.create({
-      samplingMode: 'most-predictable',
+    session = await lmCreate({
       initialPrompts: [{ role: 'system', content: '你是學術論文分析助理，使用繁體中文、精煉地回答。' }],
     });
 
@@ -1047,7 +1054,7 @@ async function generateSummary() {
 function renderSummaryShell() {
   els.summary.style.display = '';
   els.summary.innerHTML = `
-    <div class="sum-head">🧠 AI 摘要 <span class="sum-by">由 Gemini Nano 生成</span></div>
+    <div class="sum-head">🧠 AI 摘要 <span class="sum-by">由 ${esc(BROWSER.llm)} 生成</span></div>
     <div class="sum-loading">分析整份論文中…（地端模型，請稍候）</div>`;
 }
 
@@ -1059,7 +1066,7 @@ function renderSummary(obj) {
     </div>`;
   els.summary.style.display = '';
   els.summary.innerHTML =
-    `<div class="sum-head">🧠 AI 摘要 <span class="sum-by">由 Gemini Nano 生成</span></div>` +
+    `<div class="sum-head">🧠 AI 摘要 <span class="sum-by">由 ${esc(BROWSER.llm)} 生成</span></div>` +
     sec('📘', '背景知識 Background', obj.background) +
     sec('🔗', '相關研究 Related Work', obj.relatedWork) +
     sec('✨', '突破亮點 Highlights', obj.highlights) +
@@ -1358,7 +1365,7 @@ const clamp = (s, n) => (s && s.length > n ? s.slice(0, n) + '…' : (s || ''));
 
 async function askNano() {
   if (askAbort) return; // already answering
-  if (!('LanguageModel' in self)) { els.askAnswer.textContent = 'Gemini Nano 不可用，無法提問。'; return; }
+  if (!('LanguageModel' in self)) { els.askAnswer.textContent = `${BROWSER.llm} 不可用，無法提問。`; return; }
   const question = els.askInput.value.trim() || '請用繁體中文解釋這段文字的意思與相關背景。';
   const snippet = els.askSel.textContent;
 
@@ -1368,8 +1375,7 @@ async function askNano() {
   els.askAnswer.textContent = '思考中…';
 
   try {
-    askSession = await LanguageModel.create({
-      samplingMode: 'most-predictable',
+    askSession = await lmCreate({
       initialPrompts: [{ role: 'system', content: '你是研究助理。使用者會閱讀一篇論文並反白其中一段文字提問。請優先依據提供的「論文摘要」與「前後文」作答，用繁體中文回答；若需補充常識可適度補充並註明。' }],
     });
 

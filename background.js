@@ -22,13 +22,14 @@ function isPdf(url) {
   }
 }
 
-// Pages we can inject a content script into. chrome://, chrome-extension://,
-// devtools://, about:, view-source: and the Web Store are off-limits; file://
+// Pages we can inject a content script into. chrome://, edge://, chrome-extension://,
+// devtools://, about:, view-source: and the extension stores are off-limits; file://
 // only works when the user enabled "Allow access to file URLs" (we still try
 // and fall back on failure).
 function canInject(url) {
   if (!/^(https?|file):/i.test(url)) return false;
   if (/^https?:\/\/(chrome\.google\.com\/webstore|chromewebstore\.google\.com)/i.test(url)) return false;
+  if (/^https?:\/\/microsoftedge\.microsoft\.com\/addons/i.test(url)) return false;
   return true;
 }
 

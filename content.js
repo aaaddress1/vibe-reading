@@ -134,7 +134,7 @@
       onIndeterminate: () => {},
     });
     translator._target = targetLang;
-    status(translator.type === 'translator' ? 'Translator API ✓' : 'Gemini Nano ✓');
+    status(translator.type === 'translator' ? 'Translator API ✓' : `${VT.BROWSER.llm} ✓`);
     return translator;
   }
 
