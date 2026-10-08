@@ -52,6 +52,8 @@
 
 ## 📦 安裝
 
+> 💡 **安裝完成後會自動開啟「初次設定」**，檢查你的瀏覽器支援哪些 AI 功能（翻譯、AI 摘要／反白問答）。若有功能無法使用，會依你的瀏覽器（Chrome 或 Edge）一步步說明如何開啟，並提供「開啟 flags 設定」按鈕；設定好後按「重新檢查」即可。之後也可以隨時從檢視器右上角的 ⚙ 重新檢查。
+
 **方法一（推薦）：Chrome 線上應用程式商店一鍵安裝**
 👉 https://chromewebstore.google.com/detail/%E6%B0%9B%E5%9C%8D%E9%96%B1%E8%AE%80-vibe-reading/aaiiajcclefdjeegondambmholpnkjme
 
@@ -66,6 +68,13 @@
    - `chrome://flags` → 啟用 **Prompt API** 與 **Translator API** → 重啟 Chrome
    - `chrome://components` → 更新 **Optimization Guide On Device Model**（約 2.4GB）
    - 若要讀取本機 PDF，請到 `chrome://extensions` → 管理此擴充功能 → 開啟「允許存取檔案網址」
+
+**Microsoft Edge（桌面版）**
+
+- 安裝：Edge 可直接從上方 Chrome 線上應用程式商店安裝（首次會詢問是否「允許來自其他商店的擴充功能」），或到 `edge://extensions` 開啟「開發人員模式」→「載入解壓縮」
+- 翻譯與語言偵測：Edge **148+** 內建 Translator / Language Detector API，免設定
+- AI 摘要與反白問答：Edge 的 Prompt API 仍為開發者預覽，**目前只有 Edge Canary / Dev 提供**（正式版無法使用）。需到 `edge://flags` 啟用 **Prompt API for on-device language model** 後重啟，並到 `edge://on-device-internals` 確認 Device performance class 為 High 以上（約需 5.5GB VRAM）
+- 本機 PDF：到 `edge://extensions` → 詳細資料 → 開啟「允許存取檔案 URL」
 
 ## 📁 本機 PDF 注意事項
 
@@ -127,8 +136,9 @@ Chrome 的 `commands.suggested_key` 只是建議快捷鍵；如果 `Alt+T` 已�
   - 需 **macOS 13+** / Windows 10+ / Linux、磁碟 **≥ 22GB 可用**、**GPU VRAM > 4GB**
     （或 Chrome **140+** 的 CPU 後援：16GB RAM + 4 核）、首次需不限流量網路下載模型（約 2–4GB）
   - Apple Silicon（M 系列）符合需求；較舊的 Intel Mac 可能需靠 CPU 後援
-- 不支援 Android / iOS（Chrome 內建 AI 尚未開放）
-- ⚠️ Edge / Brave 等其他 Chromium 瀏覽器**無法使用**：`Translator` / `LanguageModel` 為 Chrome 專屬 API
+- 或 Microsoft Edge **148+**（桌面版；AI 摘要 / 反白問答目前僅 Edge Canary / Dev 可用，見〈安裝〉）
+- 不支援 Android / iOS（行動版瀏覽器尚未開放內建 AI）
+- ⚠️ Brave 等其他 Chromium 瀏覽器**無法使用**：沒有提供 `Translator` / `LanguageModel` API
 
 ## 🙏 致謝
 
@@ -137,6 +147,11 @@ Chrome 的 `commands.suggested_key` 只是建議快捷鍵；如果 `Alt+T` 已�
 - **[@hackerpeanutjohn](https://github.com/hackerpeanutjohn)**
   - [#3](https://github.com/aaaddress1/vibe-reading/pull/3) — **一般網頁沉浸式翻譯**：常駐翻譯球、整頁行內雙語對照、選取翻譯、修飾鍵懸停翻譯，並把翻譯引擎抽成 `translate-core.js`，讓 PDF 檢視器與一般網頁共用同一套實作
   - [#1](https://github.com/aaaddress1/vibe-reading/pull/1) — PDF 雙欄／區塊翻譯改進，以及 macOS 安裝支援
+- **[@JackGrence](https://github.com/JackGrence)**
+  - [#6](https://github.com/aaaddress1/vibe-reading/pull/6) — **選取文字翻譯快捷鍵**（預設 `Alt+S`），並在選項頁顯示／設定快捷鍵
+- **[@pingqLIN](https://github.com/pingqLIN)**
+  - [#4](https://github.com/aaaddress1/vibe-reading/pull/4) — 改進 Gemini Nano 翻譯提示詞：忠實翻譯、保留數字／公式／引用，並防止原文被當成指令
+  - [#5](https://github.com/aaaddress1/vibe-reading/pull/5) — Prompt API 相容新版 Chrome 的 MTP speculative decoding，並強化 AI 摘要的格式驗證
 
 也向啟發本專案的「沉浸式翻譯」致敬。
 
@@ -179,12 +194,16 @@ MIT License
 
 ## Install
 
+> 💡 **A first-run setup page opens right after installation.** It checks which AI features your browser supports (translation, AI Summary / Ask AI). If something is unavailable, it walks you through enabling it for your browser (Chrome or Edge), with an "Open flags" button; click "Recheck" when you're done. You can rerun the check anytime from the ⚙ button in the viewer.
+
 **Option 1 (recommended): [Install from the Chrome Web Store](https://chromewebstore.google.com/detail/%E6%B0%9B%E5%9C%8D%E9%96%B1%E8%AE%80-vibe-reading/aaiiajcclefdjeegondambmholpnkjme)** — one click.
 
 **Option 2: load unpacked** (or grab a packaged zip from [Releases](https://github.com/aaaddress1/vibe-reading/releases)):
 
 1. `chrome://extensions` → Developer mode → **Load unpacked** → select this folder (`lib/` is already bundled).
 2. First run (needed for both options): enable **Prompt API** & **Translator API** in `chrome://flags`, restart, then update **Optimization Guide On Device Model** in `chrome://components` (~2.4GB).
+
+**Microsoft Edge (desktop):** install from the Chrome Web Store link above (allow extensions from other stores when prompted) or load unpacked via `edge://extensions`. Translation and language detection work out of the box on Edge **148+**. AI Summary and Ask-AI use Edge's Prompt API, which is a developer preview available **only in Edge Canary / Dev** (not Stable): enable **Prompt API for on-device language model** in `edge://flags`, restart, and check that `edge://on-device-internals` reports a device performance class of High or above (~5.5GB VRAM).
 
 ## Local PDF Access
 
@@ -207,7 +226,8 @@ Open `chrome://extensions/shortcuts`, find Vibe Reading, and confirm that "用�
 ## Requirements
 
 - Chrome **138+** on Windows 10/11, macOS 13+, Linux, or Chromebook Plus
-- Not available on Android/iOS, nor on Edge/other browsers (`Translator` / `LanguageModel` are Chrome-only).
+- Or Microsoft Edge **148+** (desktop; AI Summary / Ask-AI currently need Edge Canary / Dev, see Install)
+- Not available on Android/iOS, nor on other Chromium browsers such as Brave (no `Translator` / `LanguageModel` APIs).
 
 ## 🙏 Acknowledgements
 

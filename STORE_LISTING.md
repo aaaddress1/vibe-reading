@@ -1,10 +1,10 @@
-# Chrome Web Store 上架文案（v1.4.0，直接複製貼上）
+# Chrome Web Store / Edge Add-ons 上架文案（v1.5.0，直接複製貼上）
 
 ## 名稱 (Name)
 氛圍閱讀 Vibe Reading — 離線翻譯 PDF 與網頁
 
 ## 簡短說明 (Summary，≤132 字元)
-用 Chrome 內建 AI 離線翻譯 PDF 與網頁：逐段對照、行內雙語、AI 摘要、反白問答。零 API Key、零費用，內容不離開瀏覽器。
+用 Chrome／Edge 內建 AI 離線翻譯 PDF 與網頁：逐段對照、行內雙語、AI 摘要、反白問答。零 API Key、零費用，內容不離開瀏覽器。
 
 ## 類別 (Category)
 生產力 (Productivity)
@@ -14,7 +14,7 @@
 https://github.com/aaaddress1/vibe-reading
 歡迎查看程式碼、回報問題或貢獻。
 
-氛圍閱讀 Vibe Reading 是一款完全離線的翻譯擴充功能，使用 Chrome 內建的地端 AI（Translator API / Gemini Nano），把 PDF 論文與一般網頁翻成你選擇的語言。所有 AI 推理都在你自己的電腦上完成——閱讀內容不會送到任何雲端，沒有 API Key、沒有費用、沒有速率限制。
+氛圍閱讀 Vibe Reading 是一款完全離線的翻譯擴充功能，使用 Chrome／Edge 內建的地端 AI（Translator API / Gemini Nano / Edge 內建模型），把 PDF 論文與一般網頁翻成你選擇的語言。所有 AI 推理都在你自己的電腦上完成——閱讀內容不會送到任何雲端，沒有 API Key、沒有費用、沒有速率限制。
 
 【PDF 翻譯】
 • 逐段翻譯：左側渲染原始 PDF、右側對照翻譯
@@ -28,20 +28,22 @@ https://github.com/aaaddress1/vibe-reading
 • 常駐翻譯球：每個網頁右下角一顆球，點一下整頁行內雙語對照，再點切回原文
 • 跟隨新內容：自動處理無限捲動與 SPA 動態載入的段落
 • 懸停翻譯：按住修飾鍵（預設 Shift，可更改）將滑鼠移到段落即翻該段
-• 選取翻譯：反白文字後右鍵「翻譯選取的文字」，以浮卡顯示
+• 選取翻譯：反白文字後按 Alt+S（v1.5.0 新增，可自訂）或右鍵「翻譯選取的文字」，以浮卡顯示
 • 球選單可切換目標語言、開關懸停、開啟設定、隱藏球
 
 【共通】
 • 自動偵測來源語言，你只需選擇翻譯目標語言（預設為瀏覽器語言）
 • 目標語言在 PDF 與網頁之間共用
-• Alt+T 熱鍵 / 右鍵選單 / 工具列圖示
+• Alt+T 整頁翻譯、Alt+S 選取翻譯 / 右鍵選單 / 工具列圖示
+• 支援 Chrome 與 Microsoft Edge 桌面版（v1.5.0 新增）
 • 暗黑主題
 
 系統需求：
 • Chrome 138 以上（Windows 10/11、macOS 13+、Linux、Chromebook Plus）
 • Translator / Language Detector API 自 Chrome 138 起免開 flag
 • Gemini Nano（AI 摘要 / 反白問答 / 翻譯備援）需於 chrome://flags 啟用 Prompt API，並於 chrome://components 下載地端模型（約 2.4GB，硬體門檻較高）
-• 不支援 Android / iOS，亦不支援 Edge 等其他瀏覽器（內建 AI 為 Chrome 專屬）
+• 或 Microsoft Edge 148 以上（桌面版）：翻譯與語言偵測免設定；AI 摘要 / 反白問答目前僅 Edge Canary / Dev 可用（需於 edge://flags 啟用「Prompt API for on-device language model」）
+• 不支援 Android / iOS（行動版瀏覽器尚未開放內建 AI）
 
 開放原始碼：https://github.com/aaaddress1/vibe-reading
 
