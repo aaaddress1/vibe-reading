@@ -18,6 +18,11 @@
     button:focus-visible { outline: 2px solid #9fb3c8; outline-offset: 2px; }
     input[type="checkbox"] { width: 18px; height: 18px; }
     .saved { color: #5fd38b; font-size: 13px; height: 18px; margin-top: 6px; }
+    .row.stack { display: block; }
+    .site-list { list-style: none; margin: 10px 0 0; padding: 0; }
+    .site-list li { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 6px 10px; margin-top: 6px; background: #2b3140; border: 1px solid #3a4150; border-radius: 8px; }
+    .site-list li span { overflow-wrap: anywhere; }
+    .site-list li.empty { background: none; border: 0; padding: 0; color: #9fb3c8; font-size: 13px; }
   </style>
 </head>
 <body>
@@ -44,6 +49,14 @@
         <div class="hint">常駐右下角的翻譯球（點擊＝整頁翻譯，預設開啟懸停翻譯）。關閉後仍可用工具列圖示／<code>Alt+T</code>／右鍵選單翻譯。</div>
       </div>
       <input type="checkbox" id="showBall">
+    </div>
+
+    <div class="row stack">
+      <div>
+        <label>不顯示懸浮球的網站</label>
+        <div class="hint">在懸浮球選單按 ✕ →「這個網站不再顯示」即可加入；按「恢復顯示」改回。也可以在該網站按右鍵 →「氛圍閱讀：重新顯示翻譯球」。</div>
+      </div>
+      <ul id="hiddenSites" class="site-list"></ul>
     </div>
 
     <div class="row">

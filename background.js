@@ -3,6 +3,8 @@
 const MENU_PAGE      = 'vibe-translate-page';
 const MENU_SELECTION = 'vibe-translate-selection';
 const MENU_HOVER     = 'vibe-translate-hover';
+const MENU_SHOW_BALL = 'vibe-show-ball';
+const MENU_OPTIONS   = 'vibe-options';
 
 // ─── Open the two-pane PDF translation viewer for a given tab ──────────────────
 async function openViewer(tab) {
@@ -110,6 +112,31 @@ function setupMenu() {
       title: '氛圍閱讀：開啟懸停翻譯（按住修飾鍵翻該段）',
       contexts: ['all'],
     });
+    // Once the floating ball is hidden its ⚙ button is gone too, so these two
+    // entries (page + toolbar-icon menus) are the way back.
+    chrome.contextMenus.create({
+      id: MENU_SHOW_BALL,
+      title: '氛圍閱讀：重新顯示翻譯球',
+      contexts: ['page', 'action'],
+    });
+    chrome.contextMenus.create({
+      id: MENU_OPTIONS,
+      title: '氛圍閱讀：設定（翻譯球、懸停修飾鍵…）',
+      contexts: ['page', 'action'],
+    });
+  });
+}
+
+// Undo both kinds of hiding for this tab's site: drop it from the per-site
+// list and turn the global switch back on (there is no per-site allow-list).
+// Open content scripts pick the change up via storage.onChanged.
+async function showBallAgain(tab) {
+  let host = '';
+  try { host = new URL(tab?.url || '').hostname; } catch (_) {}
+  const { ballHiddenSites = [] } = await chrome.storage.local.get('ballHiddenSites');
+  await chrome.storage.local.set({
+    showBall: true,
+    ballHiddenSites: ballHiddenSites.filter(s => s !== host),
   });
 }
 
@@ -125,6 +152,8 @@ chrome.contextMenus.onClicked.addListener((info, tab) => {
   if (info.menuItemId === MENU_PAGE) handleTrigger(tab);
   else if (info.menuItemId === MENU_SELECTION) translateSelection(tab, info.selectionText);
   else if (info.menuItemId === MENU_HOVER) enableHover(tab);
+  else if (info.menuItemId === MENU_SHOW_BALL) showBallAgain(tab);
+  else if (info.menuItemId === MENU_OPTIONS) chrome.runtime.openOptionsPage();
 });
 
 // ─── Open the options page (requested by the in-page panel's ⚙ button) ──────────

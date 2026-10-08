@@ -49,13 +49,21 @@
   // Persistent floating ball, like Immersive Translate: on every page we mount a
   // small ball and turn modifier-hover ON by default. Clicking the ball runs a
   // full-page translation; hovering the ball reveals the control panel. The ball
-  // can be hidden globally from the options page (showBall).
-  chrome.storage.local.get(['targetLang', 'hoverModifier', 'showBall'], (cfg) => {
+  // can be hidden globally (showBall) or per site (ballHiddenSites, a list of
+  // hostnames); both are reversible from the options page.
+  const SITE = location.hostname;
+  let showBallAll = true;
+  let hiddenSites = [];
+  const ballAllowed = () => showBallAll && !(SITE && hiddenSites.includes(SITE));
+
+  chrome.storage.local.get(['targetLang', 'hoverModifier', 'showBall', 'ballHiddenSites'], (cfg) => {
     if (cfg.targetLang) curTarget = cfg.targetLang;
     if (cfg.hoverModifier) hoverModifier = cfg.hoverModifier;
+    showBallAll = cfg.showBall !== false;   // default-on
+    hiddenSites = cfg.ballHiddenSites || [];
     const sel = document.querySelector(`#${TOOLBAR_ID} .vibe-tb-lang`);
     if (sel) sel.value = curTarget;
-    if (cfg.showBall !== false) { ensureToolbar(); setHover(true); }  // default-on
+    if (ballAllowed()) { ensureToolbar(); setHover(true); }
     updateHoverHint();
   });
 
@@ -68,9 +76,11 @@
       const sel = document.querySelector(`#${TOOLBAR_ID} .vibe-tb-lang`);
       if (sel && sel.value !== curTarget) sel.value = curTarget;
     }
-    if (changes.showBall) {
-      if (changes.showBall.newValue === false) removeToolbar();
-      else { ensureToolbar(); setHover(true); }
+    if (changes.showBall || changes.ballHiddenSites) {
+      if (changes.showBall) showBallAll = changes.showBall.newValue !== false;
+      if (changes.ballHiddenSites) hiddenSites = changes.ballHiddenSites.newValue || [];
+      if (!ballAllowed()) removeToolbar();
+      else if (!document.getElementById(TOOLBAR_ID)) { ensureToolbar(); setHover(true); }
     }
   });
 
@@ -394,7 +404,13 @@
         `<label class="vibe-tb-hover"><input type="checkbox"> <span class="vibe-tb-hovertxt">懸停(${modLabel()})</span></label>` +
         '<span class="vibe-tb-status">就緒</span>' +
         '<button class="vibe-tb-settings" title="設定（修飾鍵等）">⚙</button>' +
-        '<button class="vibe-tb-hide" title="隱藏懸浮球（本次瀏覽）">✕</button>' +
+        '<button class="vibe-tb-hide" title="隱藏懸浮球">✕</button>' +
+      '</div>' +
+      '<div class="vibe-hide-menu">' +
+        '<button class="vibe-hide-once">只隱藏這次</button>' +
+        (SITE ? '<button class="vibe-hide-site">這個網站不再顯示</button>' : '') +
+        '<button class="vibe-hide-all">所有網站都不顯示</button>' +
+        '<div class="vibe-hide-note">改回：網頁按右鍵 →「氛圍閱讀：重新顯示翻譯球」，或到設定頁</div>' +
       '</div>';
     document.documentElement.appendChild(bar);
 
@@ -404,7 +420,19 @@
     bar.querySelector('.vibe-tb-hover input').addEventListener('change', (e) => setHover(e.target.checked));
     bar.querySelector('.vibe-ball').addEventListener('click', togglePage);
     bar.querySelector('.vibe-tb-settings').addEventListener('click', () => chrome.runtime.sendMessage({ type: 'VIBE_OPEN_OPTIONS' }));
-    bar.querySelector('.vibe-tb-hide').addEventListener('click', removeToolbar);
+    const hideMenu = bar.querySelector('.vibe-hide-menu');
+    bar.querySelector('.vibe-tb-hide').addEventListener('click', () => hideMenu.classList.toggle('vibe-open'));
+    bar.addEventListener('mouseleave', () => hideMenu.classList.remove('vibe-open'));
+    bar.querySelector('.vibe-hide-once').addEventListener('click', removeToolbar);
+    bar.querySelector('.vibe-hide-site')?.addEventListener('click', () => {
+      chrome.storage.local.get('ballHiddenSites', ({ ballHiddenSites = [] }) => {
+        if (!ballHiddenSites.includes(SITE)) ballHiddenSites.push(SITE);
+        chrome.storage.local.set({ ballHiddenSites });   // onChanged removes the ball
+      });
+    });
+    bar.querySelector('.vibe-hide-all').addEventListener('click', () => {
+      chrome.storage.local.set({ showBall: false });
+    });
     updateHoverHint();
     updateToolbarState();
   }
