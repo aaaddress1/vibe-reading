@@ -541,10 +541,24 @@ function showPdfSource() {
 let baseScale = 1;   // fit-to-width scale
 let zoom      = 1;   // user zoom multiplier
 
+function isPdfUrlAllowed(url) {
+  let parsed;
+  try { parsed = new URL(url, location.href); } catch (_) { return false; }
+  if (parsed.protocol === 'file:') return true;
+  if (parsed.protocol !== 'http:' && parsed.protocol !== 'https:') return false;
+  const host = parsed.hostname.toLowerCase();
+  if (host === 'localhost' || host === '0.0.0.0' || host === '169.254.169.254') return false;
+  if (/^(127\.|10\.|192\.168\.|169\.254\.|::1$|fc00:|fd00:)/.test(host)) return false;
+  if (/^172\.(1[6-9]|2\d|3[01])\./.test(host)) return false;
+  return true;
+}
+
 async function loadAndRenderPdf() {
   setStatus('下載 PDF 檔案...');
   setIndeterminate(true);
   els.progressWrap.style.display = 'flex';
+
+  if (!isPdfUrlAllowed(pdfUrl)) throw new Error('不允許存取此網址（可能為內部網路或受限資源）');
 
   const resp = await fetch(pdfUrl);
   if (!resp.ok) throw new Error(`HTTP ${resp.status}（若為本機檔案，請到 ${BROWSER.scheme}://extensions 開啟「允許存取檔案網址」）`);
