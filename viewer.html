@@ -113,6 +113,17 @@
       </div>
 
       <div class="welcome-section">
+        <div id="welcomeAiLabel" class="welcome-label">瀏覽器內建 AI</div>
+        <div id="aiTranslateStatus" class="file-access-status">正在檢查翻譯功能...</div>
+        <div id="aiPromptStatus" class="file-access-status">正在檢查 AI 摘要／反白問答...</div>
+        <p id="aiGuide" class="welcome-copy ai-guide" hidden></p>
+        <div class="welcome-actions inline">
+          <button id="welcomeOpenFlags" class="btn" hidden>開啟 flags 設定</button>
+          <button id="welcomeAiRecheck" class="btn">重新檢查</button>
+        </div>
+      </div>
+
+      <div class="welcome-section">
         <div id="welcomeFileLabel" class="welcome-label">讀取本機 PDF</div>
         <p id="welcomeFileCopy" class="welcome-copy">若要翻譯電腦裡的 PDF，請到擴充功能管理頁，把「允許存取檔案網址」設成 enable。</p>
         <div id="fileAccessStatus" class="file-access-status">正在檢查檔案網址存取權限...</div>

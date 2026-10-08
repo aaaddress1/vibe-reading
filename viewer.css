@@ -348,6 +348,7 @@ body {
 }
 .welcome-box {
   width: min(520px, 94vw);
+  max-height: calc(100vh - 48px); overflow-y: auto;
   background: var(--surface);
   border: 1px solid #2a3a5c;
   border-radius: 12px;
@@ -390,6 +391,8 @@ body {
 }
 .file-access-status.ok { background: var(--ok-bg); color: var(--ok-fg); border-color: #31553b; }
 .file-access-status.warn { background: #332b15; color: var(--warn); border-color: #5f4f1d; }
+.ai-guide { white-space: pre-line; }
+.ai-guide[hidden], .welcome-actions .btn[hidden] { display: none; }
 .welcome-actions { display: flex; justify-content: flex-end; gap: 8px; margin-top: 14px; }
 .welcome-actions.inline { justify-content: flex-start; flex-wrap: wrap; }
 .welcome-actions .btn:not(.btn-primary) {

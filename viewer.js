@@ -74,6 +74,12 @@ const els = {
   welcomeShortcutCopy:  document.getElementById('welcomeShortcutCopy'),
   fileAccessStatus:  document.getElementById('fileAccessStatus'),
   shortcutStatus:    document.getElementById('shortcutStatus'),
+  welcomeAiLabel:    document.getElementById('welcomeAiLabel'),
+  aiTranslateStatus: document.getElementById('aiTranslateStatus'),
+  aiPromptStatus:    document.getElementById('aiPromptStatus'),
+  aiGuide:           document.getElementById('aiGuide'),
+  welcomeOpenFlags:  document.getElementById('welcomeOpenFlags'),
+  welcomeAiRecheck:  document.getElementById('welcomeAiRecheck'),
 };
 
 // ─── State ────────────────────────────────────────────────────────────────────
@@ -119,6 +125,36 @@ const WELCOME_TEXT = {
     shortcutMissing: `目前沒有指派快捷鍵。請到 ${BROWSER.name} 快捷鍵設定頁手動指定 Alt+T，或先停用另一個占用 Alt+T 的擴充功能。`,
     shortcutUnknown: `${BROWSER.name} 無法回報快捷鍵狀態；請到快捷鍵設定頁確認。`,
     noPdfWelcomeStatus: '初次設定完成後，請開啟一個 PDF 分頁並點擊插件圖示或右鍵選單。',
+    aiLabel: '瀏覽器內建 AI',
+    checkingAiTranslate: '正在檢查翻譯功能...',
+    checkingAiPrompt: '正在檢查 AI 摘要／反白問答...',
+    openFlags: '開啟 flags 設定',
+    aiTranslate: {
+      available: '翻譯：可以使用 ✓',
+      downloadable: '翻譯：可以使用，第一次翻譯時會下載語言包',
+      unavailable: '翻譯：目前的目標語言或裝置不支援',
+      missing: '翻譯：無法使用',
+    },
+    aiPrompt: {
+      available: 'AI 摘要／反白問答：可以使用 ✓',
+      downloadable: 'AI 摘要／反白問答：可以使用，第一次使用時會下載模型（數 GB）',
+      unavailable: 'AI 摘要／反白問答：目前無法使用',
+      missing: 'AI 摘要／反白問答：尚未啟用',
+    },
+    guide: {
+      edge: {
+        translateMissing: '請將 Edge 更新到 148 以上（edge://settings/help），翻譯功能才能使用。',
+        translateUnavailable: '可以換一個目標語言試試；Edge 的翻譯模型會依語言組合下載。',
+        promptMissing: 'Edge 正式版尚未提供 AI 摘要／反白問答（不影響翻譯）。若要使用：\n1. 安裝 Edge Canary 或 Dev（microsoft.com/edge/download/insider）\n2. 到 edge://flags 搜尋「Prompt API for on-device language model」，設為 Enabled\n3. 重啟 Edge 後回來按「重新檢查」',
+        promptUnavailable: '不影響翻譯。可能原因有兩種：\n1. 你使用的是 Edge 正式版：這項功能目前只有 Edge Canary / Dev 提供（edge://on-device-internals 的 Device performance class 會一直顯示 Loading）\n2. 已是 Canary / Dev 但硬體不足：預設模型需要約 5.5GB 顯示記憶體；Edge 150 以上可在 edge://flags 啟用「Enable prerelease on-device language model」，改用較小、可用 CPU 執行的模型',
+      },
+      chrome: {
+        translateMissing: '請將 Chrome 更新到 138 以上（chrome://settings/help），翻譯功能才能使用。',
+        translateUnavailable: '可以換一個目標語言試試；Chrome 的翻譯模型會依語言組合下載。',
+        promptMissing: 'AI 摘要／反白問答需要 Gemini Nano（不影響翻譯）。若要使用：\n1. 到 chrome://flags 搜尋「Prompt API for Gemini Nano」，設為 Enabled\n2. 重啟 Chrome\n3. 到 chrome://components 更新「Optimization Guide On Device Model」，再回來按「重新檢查」',
+        promptUnavailable: 'Gemini Nano 需要 GPU 顯示記憶體超過 4GB（或 16GB RAM + 4 核 CPU）以及至少 22GB 可用磁碟空間（不影響翻譯）。可到 chrome://on-device-internals 查看詳細狀態。',
+      },
+    },
   },
   en: {
     lang: 'en',
@@ -147,6 +183,36 @@ const WELCOME_TEXT = {
     shortcutMissing: `No shortcut is currently assigned. Open ${BROWSER.name} shortcut settings to assign Alt+T, or disable another extension that already uses Alt+T.`,
     shortcutUnknown: `${BROWSER.name} cannot report the shortcut state. Please confirm it in shortcut settings.`,
     noPdfWelcomeStatus: 'After setup, open a PDF tab, then click the extension icon or context menu.',
+    aiLabel: 'Built-in browser AI',
+    checkingAiTranslate: 'Checking translation...',
+    checkingAiPrompt: 'Checking AI Summary / Ask AI...',
+    openFlags: 'Open flags',
+    aiTranslate: {
+      available: 'Translation: ready ✓',
+      downloadable: 'Translation: ready; a language pack downloads on first use',
+      unavailable: 'Translation: not supported for this target language or device',
+      missing: 'Translation: not available',
+    },
+    aiPrompt: {
+      available: 'AI Summary / Ask AI: ready ✓',
+      downloadable: 'AI Summary / Ask AI: ready; the model (several GB) downloads on first use',
+      unavailable: 'AI Summary / Ask AI: currently unavailable',
+      missing: 'AI Summary / Ask AI: not enabled',
+    },
+    guide: {
+      edge: {
+        translateMissing: 'Update Edge to version 148 or later (edge://settings/help) to use translation.',
+        translateUnavailable: 'Try another target language; Edge downloads translation models per language pair.',
+        promptMissing: 'Edge Stable does not offer AI Summary / Ask AI yet (translation is unaffected). To use them:\n1. Install Edge Canary or Dev (microsoft.com/edge/download/insider)\n2. In edge://flags, search for "Prompt API for on-device language model" and set it to Enabled\n3. Restart Edge, then come back and click "Recheck"',
+        promptUnavailable: 'Translation is unaffected. There are two likely causes:\n1. You are on Edge Stable: this feature is only available in Edge Canary / Dev (Device performance class in edge://on-device-internals stays at Loading)\n2. You are on Canary / Dev but the hardware is not enough: the default model needs about 5.5GB of VRAM; on Edge 150+, enable "Enable prerelease on-device language model" in edge://flags to use a smaller model that can run on the CPU',
+      },
+      chrome: {
+        translateMissing: 'Update Chrome to version 138 or later (chrome://settings/help) to use translation.',
+        translateUnavailable: 'Try another target language; Chrome downloads translation models per language pair.',
+        promptMissing: 'AI Summary / Ask AI need Gemini Nano (translation is unaffected). To use them:\n1. In chrome://flags, search for "Prompt API for Gemini Nano" and set it to Enabled\n2. Restart Chrome\n3. Update "Optimization Guide On Device Model" in chrome://components, then come back and click "Recheck"',
+        promptUnavailable: 'Gemini Nano needs more than 4GB of VRAM (or 16GB RAM + 4 CPU cores) and at least 22GB of free disk space (translation is unaffected). See chrome://on-device-internals for details.',
+      },
+    },
   },
 };
 
@@ -231,6 +297,7 @@ async function setupFirstRunPrompt(showWelcome) {
     els.targetLang.value = els.welcomeTargetLang.value;
     chrome.storage.local.set({ targetLang: els.welcomeTargetLang.value });
     checkAI();
+    refreshAiStatus();
   });
   els.welcomeDone.addEventListener('click', saveWelcomeSettings);
   els.welcomeClose.addEventListener('click', saveWelcomeSettings);
@@ -246,10 +313,19 @@ async function setupFirstRunPrompt(showWelcome) {
     els.fileAccessStatus.textContent = welcomeText.openedExtensions;
     els.fileAccessStatus.className = 'file-access-status warn';
   });
+  els.welcomeAiRecheck.addEventListener('click', refreshAiStatus);
+  els.welcomeOpenFlags.addEventListener('click', () => {
+    // Edge's flag slug isn't documented, so open the page and let the guide
+    // text name the flag to search for.
+    chrome.tabs.create({ url: BROWSER.scheme === 'edge'
+      ? 'edge://flags'
+      : 'chrome://flags/#prompt-api-for-gemini-nano' });
+  });
 
   if (showWelcome) {
     els.targetLang.value = els.welcomeTargetLang.value;
     els.welcomeModal.style.display = 'flex';
+    refreshAiStatus();
     refreshFileAccessStatus();
     refreshShortcutStatus();
   }
@@ -258,8 +334,66 @@ async function setupFirstRunPrompt(showWelcome) {
 function openWelcomeSettings() {
   els.welcomeTargetLang.value = els.targetLang.value || browserDefaultTarget();
   els.welcomeModal.style.display = 'flex';
+  refreshAiStatus();
   refreshFileAccessStatus();
   refreshShortcutStatus();
+}
+
+// ─── First-run AI capability check ───────────────────────────────────────────────
+// Each probe resolves to 'available' | 'downloadable' | 'unavailable' | 'missing'
+// ('missing' = the API isn't exposed at all, i.e. browser too old or flag off).
+async function probeTranslator(target) {
+  if (!('Translator' in self)) return 'missing';
+  const source = target === 'en' ? 'fr' : 'en';
+  try {
+    const a = await Translator.availability({ sourceLanguage: source, targetLanguage: target });
+    return a === 'downloading' ? 'downloadable' : a;
+  } catch (_) {
+    return 'unavailable';
+  }
+}
+
+async function probePrompt() {
+  if (!('LanguageModel' in self)) return 'missing';
+  try {
+    const a = await lmAvailability();
+    return a === 'downloading' ? 'downloadable' : a;
+  } catch (_) {
+    return 'unavailable';
+  }
+}
+
+const AI_RANK = { available: 3, downloadable: 2, unavailable: 1, missing: 0 };
+
+async function refreshAiStatus() {
+  const t = welcomeText;
+  els.aiTranslateStatus.textContent = t.checkingAiTranslate;
+  els.aiTranslateStatus.className = 'file-access-status';
+  els.aiPromptStatus.textContent = t.checkingAiPrompt;
+  els.aiPromptStatus.className = 'file-access-status';
+
+  const target = els.welcomeTargetLang.value || browserDefaultTarget();
+  const [translator, prompt] = await Promise.all([probeTranslator(target), probePrompt()]);
+  // Translation falls back to the Prompt API, so it works if either engine does.
+  const translate = AI_RANK[translator] >= AI_RANK[prompt] ? translator : prompt;
+
+  const okish = s => s === 'available' || s === 'downloadable';
+  els.aiTranslateStatus.textContent = t.aiTranslate[translate];
+  els.aiTranslateStatus.className = `file-access-status ${okish(translate) ? 'ok' : 'warn'}`;
+  els.aiPromptStatus.textContent = t.aiPrompt[prompt];
+  els.aiPromptStatus.className = `file-access-status ${okish(prompt) ? 'ok' : 'warn'}`;
+
+  const g = t.guide[BROWSER.scheme === 'edge' ? 'edge' : 'chrome'];
+  const tips = [];
+  if (translate === 'missing') tips.push(g.translateMissing);
+  else if (translate === 'unavailable') tips.push(g.translateUnavailable);
+  if (prompt === 'missing') tips.push(g.promptMissing);
+  else if (prompt === 'unavailable') tips.push(g.promptUnavailable);
+
+  els.aiGuide.textContent = tips.join('\n\n');
+  els.aiGuide.hidden = tips.length === 0;
+  els.welcomeOpenFlags.hidden = prompt !== 'missing' &&
+    !(prompt === 'unavailable' && BROWSER.scheme === 'edge');
 }
 
 function saveWelcomeSettings() {
@@ -324,6 +458,11 @@ function applyWelcomeText(text) {
   els.welcomeOpenShortcuts.textContent = text.openShortcuts;
   els.welcomeRecheck.textContent = text.recheck;
   els.welcomeDone.textContent = text.done;
+  els.welcomeAiLabel.textContent = text.aiLabel;
+  els.aiTranslateStatus.textContent = text.checkingAiTranslate;
+  els.aiPromptStatus.textContent = text.checkingAiPrompt;
+  els.welcomeOpenFlags.textContent = text.openFlags;
+  els.welcomeAiRecheck.textContent = text.recheck;
 }
 
 // ─── Translation font-size control (persisted) ──────────────────────────────────
@@ -373,7 +512,7 @@ async function checkAI() {
   showError(BROWSER.scheme === 'edge'
     ? 'Edge 內建 AI 無法使用。請確認：\n' +
       '1. Edge 版本 ≥ 148（翻譯與語言偵測）\n' +
-      '2. AI 摘要與反白問答：到 edge://flags 啟用「Prompt API for Phi mini」\n' +
+      '2. AI 摘要與反白問答目前僅 Edge Canary / Dev 提供：到 edge://flags 啟用「Prompt API for on-device language model」\n' +
       '3. 重新啟動 Edge'
     : 'Chrome 內建 AI 無法使用。請確認：\n' +
       '1. Chrome 版本 ≥ 138\n' +
@@ -1365,7 +1504,12 @@ const clamp = (s, n) => (s && s.length > n ? s.slice(0, n) + '…' : (s || ''));
 
 async function askNano() {
   if (askAbort) return; // already answering
-  if (!('LanguageModel' in self)) { els.askAnswer.textContent = `${BROWSER.llm} 不可用，無法提問。`; return; }
+  if (!('LanguageModel' in self)) {
+    els.askAnswer.textContent = BROWSER.scheme === 'edge'
+      ? 'Edge 內建 AI 不可用，無法提問。Edge 正式版尚未提供 Prompt API；請改用 Edge Canary / Dev，並到 edge://flags 啟用「Prompt API for on-device language model」後重啟。'
+      : `${BROWSER.llm} 不可用，無法提問。`;
+    return;
+  }
   const question = els.askInput.value.trim() || '請用繁體中文解釋這段文字的意思與相關背景。';
   const snippet = els.askSel.textContent;
 
@@ -1410,6 +1554,9 @@ async function askNano() {
     if (e.name === 'AbortError') {
       if (!els.askAnswer.textContent || els.askAnswer.textContent === '思考中…') els.askAnswer.textContent = '（已停止）';
       else els.askAnswer.textContent += '\n\n（已停止）';
+    } else if (e.name === 'NotSupportedError') {
+      els.askAnswer.textContent = `${BROWSER.llm} 在這台裝置上無法使用（${e.message}）。` +
+        `請按右上角 ⚙ 查看「瀏覽器內建 AI」的檢查結果與設定方式。`;
     } else {
       els.askAnswer.textContent = '發生錯誤：' + e.message;
     }

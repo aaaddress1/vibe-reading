@@ -51,26 +51,42 @@
 
   // ─── Prompt API wrappers ────────────────────────────────────────────────────
   // samplingMode keeps sessions compatible with Chrome's MTP speculative
-  // decoding. A runtime that rejects the option (e.g. an unknown enum value
-  // throws TypeError) gets retried without it.
+  // decoding, but other runtimes (e.g. Edge's models) may not support it:
+  // they report 'unavailable' for it, or reject it with TypeError /
+  // NotSupportedError ("Model capability is not available"). Probe once and
+  // drop the option for the rest of the page's life if it isn't supported.
   const LM_SAMPLING = { samplingMode: 'most-predictable' };
+  let lmUseSampling = null;   // null = not probed yet
+
+  const isOptionRejection = e => e?.name === 'TypeError' || e?.name === 'NotSupportedError';
 
   async function lmAvailability() {
-    try {
-      return await LanguageModel.availability(LM_SAMPLING);
-    } catch (e) {
-      if (e?.name !== 'TypeError') throw e;
-      return await LanguageModel.availability();
+    if (lmUseSampling !== false) {
+      try {
+        const a = await LanguageModel.availability(LM_SAMPLING);
+        if (a !== 'unavailable') { lmUseSampling = true; return a; }
+      } catch (e) {
+        if (!isOptionRejection(e)) throw e;
+      }
     }
+    const a = await LanguageModel.availability();
+    if (a !== 'unavailable') lmUseSampling = false;
+    return a;
   }
 
   async function lmCreate(options) {
-    try {
-      return await LanguageModel.create({ ...LM_SAMPLING, ...options });
-    } catch (e) {
-      if (e?.name !== 'TypeError') throw e;
-      return await LanguageModel.create(options);
+    if (lmUseSampling === null) {
+      try { await lmAvailability(); } catch (_) {}
     }
+    if (lmUseSampling !== false) {
+      try {
+        return await LanguageModel.create({ ...LM_SAMPLING, ...options });
+      } catch (e) {
+        if (!isOptionRejection(e)) throw e;
+        lmUseSampling = false;
+      }
+    }
+    return await LanguageModel.create(options);
   }
 
   function targetLocale(code) {
