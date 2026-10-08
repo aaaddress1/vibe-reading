@@ -1,7 +1,7 @@
 # 氛圍閱讀 Vibe Reading 📖
 
 > 向「沉浸式翻譯」致敬 — 但**完全離線、零 API Key、零雲端費用**。
-> 基於 Chrome 內建 AI（Gemini Nano / Translator API），在地端把整份 PDF 論文與**任意網頁**逐段翻成你的語言。
+> 基於 Chrome／Edge 內建 AI（Translator API / Gemini Nano），在地端把整份 PDF 論文與**任意網頁**逐段翻成你的語言。
 
 [![Buy Me a Coffee](https://img.buymeacoffee.com/button-api/?text=Buy%20me%20a%20coffee&slug=aaaddress1&button_colour=FFDD00&font_colour=000000&font_family=Cookie&outline_colour=000000&coffee_colour=ffffff)](https://www.buymeacoffee.com/aaaddress1)
 
@@ -21,9 +21,9 @@
 
 ## 這是什麼？
 
-一個 Chrome 擴充功能。打開 PDF（例如 arxiv 論文）後，**自動**把全文逐段翻譯，並排顯示在右側；在**一般網頁**上則以行內雙語對照就地翻譯。所有 AI 推理都跑在你自己的電腦上 —— 內容**不會送到任何雲端**。
+一個 Chrome／Edge 擴充功能。打開 PDF（例如 arxiv 論文）後，**自動**把全文逐段翻譯，並排顯示在右側；在**一般網頁**上則以行內雙語對照就地翻譯。所有 AI 推理都跑在你自己的電腦上 —— 內容**不會送到任何雲端**。
 
-- 🔒 **完全離線**：用 Chrome 138+ 內建的 Gemini Nano / Translator API，資料不離開瀏覽器
+- 🔒 **完全離線**：用 Chrome 138+／Edge 148+ 內建的 Translator API 與 Gemini Nano，資料不離開瀏覽器
 - 💸 **零成本**：沒有 OpenAI / Anthropic 帳單，沒有 rate limit
 - 🌗 **暗黑主題**：護眼的雙欄閱讀介面
 
@@ -37,17 +37,21 @@
 - **🤖 反白問 AI**：在論文中反白文字，直接向 Gemini Nano 提問；提問會附上 AI 摘要與該段前後文作為上下文，回答更精準（可隨時停止、視窗不鎖住可邊讀邊問）
 - **🌐 反白快速翻譯**：反白文字後點「翻譯」，面板立即顯示該段譯文——零輸入，輸入框保留供追問
 - **🧭 首次安裝導覽**：安裝後依瀏覽器語系顯示繁中／英文設定頁，提示選擇預設目標語言，並引導開啟「允許存取檔案網址」以讀取本機 PDF
+- **🩺 內建 AI 檢查（v1.5 新增）**：初次設定會檢查瀏覽器支援哪些 AI 功能，不能用時依 Chrome／Edge 一步步教你開啟
 - **⚙️ 可重新開啟設定**：右上角齒輪可隨時重新選擇預設目標語言、檢查本機檔案權限
 - **✏️ 字卡編輯模式**：雙擊任一段譯文就地編輯，可手動修改文字、按 Enter 重新分段；失焦或 Ctrl+Enter 儲存、Esc 取消
 - **⌨️ Alt+T 熱鍵**：在任意 PDF 分頁按 Alt+T 一鍵開啟翻譯；也可點工具列圖示或右鍵選單
+- **🎯 更忠實的 AI 翻譯（v1.5 新增）**：不摘要、不增刪，保留數字、單位、網址、公式與引用
 - **🔍 PDF 獨立縮放**：Ctrl+滾輪／觸控板雙指只縮放左側 PDF（不連動整頁），平滑如原生；←/→ 翻頁
 - **📰 雙欄論文支援**：自動偵測分欄，左右欄正確分開讀取
 - **🔤 翻譯字體調整**：A−／A+ 調整右側字體大小（記憶設定）
 - **🌐 網頁沈浸式翻譯**：每個網頁右下角**常駐一顆翻譯球**（可在設定頁關閉）
   - **點球＝整頁翻譯**：行內雙語對照，並自動跟隨無限捲動／SPA 新增的內容；再點一次切回原文
   - **預設懸停翻譯**：**按住修飾鍵（預設 Shift，可在設定頁更改）**移到段落即翻該段
-  - **選取翻譯**：反白文字後右鍵「翻譯選取的文字」，只翻選取（浮卡顯示）
+  - **選取翻譯**：反白文字後按 **`Alt+S`**（v1.5 新增，可自訂）或右鍵「翻譯選取的文字」，只翻選取（浮卡顯示）
   - 滑鼠移到球上展開選單：切換語言、開關懸停、⚙ 設定、隱藏球
+  - **隱藏翻譯球（v1.5 新增）**：按 ✕ 可選「只隱藏這次／這個網站不再顯示／所有網站都不顯示」；在網頁按右鍵 →「重新顯示翻譯球」或到設定頁即可改回
+- **🧩 支援 Microsoft Edge 桌面版（v1.5 新增）**：Edge 148+ 可直接翻譯；AI 摘要／反白問答目前需 Edge Canary／Dev
 - **🌗 暗黑主題、完全離線、零 API Key**
 
 ## 📦 安裝
@@ -101,6 +105,7 @@ Chrome 擴充功能預設**不能讀取 `file://` 本機檔案網址**。如果�
 1. 每個網頁右下角會有一顆翻譯球：**點球＝整頁翻譯**（再點切回原文）；也可用工具列圖示／`Alt+T`
 2. **懸停翻譯（預設開）**：按住 `Shift`（可改）將滑鼠移到段落即翻該段
 3. 滑鼠移到球上會展開選單：切換目標語言（與 PDF 共用）、開關懸停、⚙ 設定、隱藏球
+   - 按 ✕ 可選擇「只隱藏這次」、「這個網站不再顯示」或「所有網站都不顯示」；之後想改回：在網頁按右鍵（或對工具列圖示按右鍵）→「氛圍閱讀：重新顯示翻譯球」，或到擴充功能設定頁的「不顯示懸浮球的網站」／「在網頁顯示懸浮球」
 4. 只想翻一段：反白後**右鍵 →「翻譯選取的文字」**
 5. 設定（修飾鍵、是否顯示球）：球選單的 ⚙，或 `chrome://extensions` →「詳細資料」→「擴充功能選項」
 
@@ -166,7 +171,7 @@ MIT License
 # Vibe Reading 📖 (English)
 
 > A tribute to "Immersive Translate" — but **fully offline, no API key, no cloud bills**.
-> Translates entire PDF papers paragraph-by-paragraph using Chrome's built-in on-device AI (Gemini Nano / Translator API).
+> Translates entire PDF papers and any web page paragraph-by-paragraph using Chrome's / Edge's built-in on-device AI (Translator API / Gemini Nano).
 
 [![Buy Me a Coffee](https://img.buymeacoffee.com/button-api/?text=Buy%20me%20a%20coffee&slug=aaaddress1&button_colour=FFDD00&font_colour=000000&font_family=Cookie&outline_colour=000000&coffee_colour=ffffff)](https://www.buymeacoffee.com/aaaddress1)
 
@@ -180,17 +185,21 @@ MIT License
 - **🤖 Ask-AI on selection**: highlight text and ask Gemini Nano; the prompt includes the AI summary and the surrounding paragraphs as context. Stoppable, and the panel is non-blocking so you can keep reading
 - **🌐 Quick-translate on selection**: hit "翻譯" on the floating bar and the panel instantly shows the translation — zero typing, with the input kept for follow-ups
 - **🧭 First-run guide**: shows Traditional Chinese or English based on browser language, lets you choose the default target language, and guides you to enable file URL access for local PDFs
+- **🩺 Built-in AI check (new in v1.5)**: the first-run page checks which AI features your browser supports and walks you through enabling them on Chrome or Edge
 - **⚙️ Reopenable settings**: use the top-right gear anytime to update the default target language or check local file access
 - **✏️ Editable translation cards**: double-click any translation to edit in place — fix wording or re-paragraph with Enter; blur/Ctrl+Enter saves, Esc cancels
 - **⌨️ Alt+T hotkey** to open the translator on any PDF tab (also via toolbar icon or right-click menu)
+- **🎯 More faithful AI translation (new in v1.5)**: no summarizing, adding or dropping content; numbers, units, URLs, formulas and citations are preserved
 - **🔍 Independent PDF zoom**: Ctrl+wheel / trackpad pinch zooms only the left PDF (smooth, native-like); ←/→ flip pages
 - **📰 Two-column papers** detected and read column-by-column
 - **🔤 Adjustable translation font** (A−/A+, remembered) · **🌗 dark theme · fully offline · no API key**
 - **🌐 Immersive web-page translation**: a persistent translate ball sits on every page (can be disabled in options)
   - **Click the ball = translate the whole page** inline and bilingually, following infinite scroll / SPA updates; click again to restore the original
   - **Hover translate**: hold the modifier key (default `Shift`, configurable) and point at a paragraph to translate just that block
-  - **Selection translate**: highlight text, then right-click → "翻譯選取的文字" to translate only the selection in a popup card
+  - **Selection translate**: highlight text, then press **`Alt+S`** (new in v1.5, customizable) or right-click → "翻譯選取的文字" to translate only the selection in a popup card
   - Hover the ball to reveal its panel: target language (shared with the PDF viewer), hover toggle, ⚙ options, hide ball
+  - The ✕ button lets you hide the ball just this once, on the current site, or on all sites; undo it anytime via right-click (on the page or the toolbar icon) → "氛圍閱讀：重新顯示翻譯球", or from the options page
+- **🧩 Microsoft Edge desktop support (new in v1.5)**: translation works on Edge 148+; AI Summary / Ask AI currently need Edge Canary / Dev
 
 ## Install
 
