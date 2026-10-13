@@ -1,4 +1,4 @@
-# Chrome Web Store / Edge Add-ons 上架文案（v1.6.0，直接複製貼上）
+# Chrome Web Store / Edge Add-ons 上架文案（v1.7.0，直接複製貼上）
 
 ## 名稱 (Name)
 氛圍閱讀 Vibe Reading — 離線翻譯 PDF 與網頁
@@ -14,7 +14,7 @@
 https://github.com/aaaddress1/vibe-reading
 歡迎查看程式碼、回報問題或貢獻。
 
-氛圍閱讀 Vibe Reading 是一款完全離線的翻譯擴充功能，使用 Chrome／Edge 內建的地端 AI（Translator API / Gemini Nano / Edge 內建模型），把 PDF 論文與一般網頁翻成你選擇的語言。所有 AI 推理都在你自己的電腦上完成——閱讀內容不會送到任何雲端，沒有 API Key、沒有費用、沒有速率限制。
+氛圍閱讀 Vibe Reading 是一款完全離線的翻譯擴充功能，使用 Chrome／Edge 內建的地端 AI（Translator API / Gemini Nano / Edge 內建模型），把 PDF 論文與一般網頁翻成你選擇的語言；瀏覽器沒有內建 AI 時（例如 Android 版 Edge），改用在本機 CPU 執行的翻譯模型。所有 AI 推理都在你自己的裝置上完成——閱讀內容不會送到任何雲端，沒有 API Key、沒有費用、沒有速率限制。
 
 【PDF 翻譯】
 • 逐段翻譯：左側渲染原始 PDF、右側對照翻譯
@@ -25,6 +25,7 @@ https://github.com/aaaddress1/vibe-reading
 • 左側 PDF 獨立平滑縮放、方向鍵翻頁、雙欄論文自動分欄
 • 版面分析分段（v1.6.0 新增）：以本機小模型辨識段落、標題、圖與表，圖表裡的文字不再混入翻譯，跨欄、跨頁斷開的段落自動接回，參考文獻一筆一段
 • PDF 暗黑模式（v1.6.0 新增）：右上角一鍵切成深色底、淺色字，圖表保留原本色調
+• 開啟本機 PDF 檔案（v1.7.0 新增）：選檔或拖曳 PDF 即可翻譯，手機上也能用
 
 【網頁翻譯（v1.4.0 新增）】
 • 常駐翻譯球：每個網頁右下角一顆球，點一下整頁行內雙語對照，再點切回原文
@@ -39,6 +40,7 @@ https://github.com/aaaddress1/vibe-reading
 • 目標語言在 PDF 與網頁之間共用
 • Alt+T 整頁翻譯、Alt+S 選取翻譯 / 右鍵選單 / 工具列圖示
 • 支援 Chrome 與 Microsoft Edge 桌面版（v1.5.0 新增）
+• 本機翻譯模型（v1.7.0 新增）：瀏覽器沒有內建 AI 時（例如 Android 版 Edge），改用 Opus-MT 翻譯模型在本機 CPU 執行；每個語言組合第一次使用時下載約 117MB，之後離線可用。支援英文翻成繁中／簡中／法／德／西／俄／葡，以及其他語言翻成英文。設定頁可改成一律使用本機模型
 • 暗黑主題
 
 系統需求：
@@ -46,7 +48,7 @@ https://github.com/aaaddress1/vibe-reading
 • Translator / Language Detector API 自 Chrome 138 起免開 flag
 • Gemini Nano（AI 摘要 / 反白問答 / 翻譯備援）需於 chrome://flags 啟用 Prompt API，並於 chrome://components 下載地端模型（約 2.4GB，硬體門檻較高）
 • 或 Microsoft Edge 148 以上（桌面版）：翻譯與語言偵測免設定；AI 摘要 / 反白問答目前僅 Edge Canary / Dev 可用（需於 edge://flags 啟用「Prompt API for on-device language model」）
-• 不支援 Android / iOS（行動版瀏覽器尚未開放內建 AI）
+• Android 版 Edge：翻譯使用本機翻譯模型（AI 摘要 / 反白問答無法使用）；不支援 iOS
 
 開放原始碼：https://github.com/aaaddress1/vibe-reading
 
@@ -56,12 +58,13 @@ https://github.com/aaaddress1/vibe-reading
 • scripting：當分頁在擴充功能安裝／更新前就已開啟（此時 static content script 不會注入），改由使用者操作觸發動態注入翻譯功能。
 • tabs：讀取目前分頁網址以判斷是否為 PDF，決定要開啟雙欄檢視器或就地翻譯。用於工具列圖示、Alt+T 熱鍵與右鍵選單。
 • contextMenus：提供「翻譯這個頁面」、「翻譯選取的文字」、「開啟懸停翻譯」、「重新顯示翻譯球」、「設定」右鍵選單。
-• storage：在本機儲存使用者偏好（翻譯目標語言、懸停修飾鍵、是否顯示翻譯球、不顯示翻譯球的網站清單、翻譯字體大小、PDF 暗黑模式）。
+• storage：在本機儲存使用者偏好（翻譯目標語言、翻譯引擎、懸停修飾鍵、是否顯示翻譯球、不顯示翻譯球的網站清單、翻譯字體大小、PDF 暗黑模式）。
+• unlimitedStorage：本機翻譯模型每個語言組合約 117MB，下載後存於擴充功能的 Cache Storage 以便離線使用；需要此權限避免模型因儲存配額被清除。
 • activeTab：搭配使用者操作（點圖示／熱鍵）在當下取得作用中分頁以啟動翻譯。
 
 ## 隱私權實務 (Privacy practices)
-• 不蒐集任何使用者資料。翻譯與 AI 推理皆由 Chrome 內建地端 API 在本機完成，無任何外部網路傳輸。
-• 擴充功能本身不發出任何網路請求（無 fetch / XMLHttpRequest / WebSocket），亦不使用分析或追蹤工具。
+• 不蒐集任何使用者資料。翻譯與 AI 推理皆在本機完成（Chrome／Edge 內建地端 API，或套件內附的本機翻譯模型），閱讀內容不會傳送到任何外部伺服器。
+• 擴充功能只發出兩種網路請求：(1) 讀取使用者自己開啟的 PDF；(2) 使用本機翻譯模型時，從 huggingface.co 下載模型檔（固定版本的 ONNX 權重與分詞設定，只是資料檔，不含使用者內容）。不使用分析或追蹤工具。
 • 單一用途：將使用者正在閱讀的內容（PDF 或網頁）翻譯成所選語言並輔助閱讀。
 
 ────────────────────────────────────────
@@ -77,7 +80,10 @@ https://github.com/aaaddress1/vibe-reading
 提供「翻譯這個頁面 / 切回原文」、「翻譯選取的文字」、「開啟懸停翻譯」右鍵選單讓使用者一鍵啟動翻譯，以及「重新顯示翻譯球」、「設定」，讓使用者在隱藏網頁上的翻譯球後仍能改回設定。
 
 【storage 權限理由】
-在本機儲存使用者偏好設定（翻譯目標語言、懸停翻譯修飾鍵、是否顯示網頁翻譯球、不顯示翻譯球的網站清單、翻譯字體大小、PDF 暗黑模式）。不含個人資料，也不會上傳到任何伺服器。
+在本機儲存使用者偏好設定（翻譯目標語言、翻譯引擎、懸停翻譯修飾鍵、是否顯示網頁翻譯球、不顯示翻譯球的網站清單、翻譯字體大小、PDF 暗黑模式）。不含個人資料，也不會上傳到任何伺服器。
+
+【unlimitedStorage 權限理由】
+瀏覽器沒有內建 AI 時（例如 Android 版 Edge），翻譯改用在本機執行的翻譯模型，每個語言組合約 117MB。模型下載後存在擴充功能的 Cache Storage，之後即可離線翻譯；此權限避免模型因儲存配額不足而被瀏覽器清除、每次都要重新下載。只儲存模型檔，不含使用者資料。
 
 【scripting 權限理由】
 當某個分頁在擴充功能安裝或更新之前就已經開啟時，宣告式的 content script 不會注入到該分頁。此時由使用者操作（點擊工具列圖示、Alt+T、右鍵選單）觸發，用 chrome.scripting 將翻譯功能注入該分頁，避免使用者必須手動重新整理頁面。
@@ -86,11 +92,12 @@ https://github.com/aaaddress1/vibe-reading
 讀取目前分頁的網址以判斷是否為 PDF，據此決定開啟翻譯檢視器或在頁面內就地翻譯；PDF 情況下並將該網址傳給檢視器分頁。用於工具列圖示、Alt+T 熱鍵與右鍵選單。
 
 【網站存取權理由 host permissions（<all_urls>）】
-本擴充的核心功能是翻譯使用者當前閱讀的內容，而使用者可能在任何網站上閱讀 PDF 或文章，因此無法預先列舉特定網域。具體用途有二：(1) 讀取使用者開啟的 PDF 內容（例如 arxiv.org、各學術期刊，以及本機 file:// PDF）以進行逐段翻譯；(2) 在一般網頁注入 content script，以顯示翻譯球並在頁面內插入行內譯文。頁面內容僅在使用者的裝置上由 Chrome 內建 AI 處理，不會蒐集、儲存或外傳。翻譯球可由使用者在選項頁關閉，且在使用者主動點擊或按下修飾鍵之前不會翻譯任何內容。
+本擴充的核心功能是翻譯使用者當前閱讀的內容，而使用者可能在任何網站上閱讀 PDF 或文章，因此無法預先列舉特定網域。具體用途有二：(1) 讀取使用者開啟的 PDF 內容（例如 arxiv.org、各學術期刊，以及本機 file:// PDF）以進行逐段翻譯；(2) 在一般網頁注入 content script，以顯示翻譯球並在頁面內插入行內譯文。頁面內容僅在使用者的裝置上由瀏覽器內建 AI 或本機翻譯模型處理，不會蒐集、儲存或外傳。翻譯球可由使用者在選項頁關閉，且在使用者主動點擊或按下修飾鍵之前不會翻譯任何內容。
 
 【遠端程式碼 Remote code】→ 請選「否，未使用遠端程式碼」
-本擴充未使用任何遠端程式碼。所有函式庫皆已封裝於擴充功能套件內（lib/ 目錄），不從遠端載入或執行程式碼：PDF.js（PDF 渲染）、onnxruntime-web 及其 WebAssembly 檔（lib/ort/）、PDF 版面分析模型 PP-DocLayout-S（lib/layout/，Apache-2.0）。翻譯與 AI 功能使用 Chrome／Edge 瀏覽器內建 API，亦非遠端程式碼。
-manifest 的 extension_pages CSP 加入 'wasm-unsafe-eval'，僅用於在本機執行套件內附的 WebAssembly（版面分析模型），script-src 仍限定 'self'。
+本擴充未使用任何遠端程式碼。所有函式庫皆已封裝於擴充功能套件內（lib/ 目錄），不從遠端載入或執行程式碼：PDF.js（PDF 渲染）、onnxruntime-web 及其 WebAssembly 檔（lib/ort/）、PDF 版面分析模型 PP-DocLayout-S（lib/layout/，Apache-2.0）、tokenizers.js（lib/tokenizers/，Apache-2.0）、opencc-js 簡轉繁（lib/opencc/，MIT）。翻譯與 AI 功能使用 Chrome／Edge 瀏覽器內建 API，亦非遠端程式碼。
+本機翻譯模型（Opus-MT，CC-BY 4.0）的權重從 huggingface.co 下載，下載網址固定到特定版本。下載的只有 ONNX 模型權重與 JSON 設定檔等資料，由套件內附的 onnxruntime-web 執行，不含任何 JavaScript 或 WebAssembly 程式碼。
+manifest 的 extension_pages CSP 加入 'wasm-unsafe-eval'，僅用於在本機執行套件內附的 WebAssembly（onnxruntime-web），script-src 仍限定 'self'。
 （若表單仍要求文字理由，貼上上面這段即可。）
 
 ## 截圖建議（需 1280×800 或 640×400，至少 1 張）

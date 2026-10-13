@@ -54,12 +54,12 @@
   - 滑鼠移到球上展開選單：切換語言、開關懸停、⚙ 設定、隱藏球
   - **隱藏翻譯球（v1.5 新增）**：按 ✕ 可選「只隱藏這次／這個網站不再顯示／所有網站都不顯示」；在網頁按右鍵 →「重新顯示翻譯球」或到設定頁即可改回
 - **🧩 支援 Microsoft Edge 桌面版（v1.5 新增）**：Edge 148+ 可直接翻譯；AI 摘要／反白問答目前需 Edge Canary／Dev
-- **📱 本機翻譯模型（Android 版 Edge 也能用）**：瀏覽器沒有內建 AI 時，自動改用 Opus-MT 翻譯模型，在本機 CPU 執行
+- **📱 本機翻譯模型（v1.7 新增，Android 版 Edge 也能用）**：瀏覽器沒有內建 AI 時，自動改用 Opus-MT 翻譯模型，在本機 CPU 執行
   - 每個語言組合第一次使用時從 Hugging Face 下載約 110MB，之後存在瀏覽器裡、離線可用
   - 支援英文翻成繁中／簡中／法／德／西／俄／葡，以及其他語言翻成英文（非英文之間會經英文轉譯）；不支援翻成日文、韓文
   - 品質與速度不如內建 AI；AI 摘要／反白問答仍需 Gemini Nano
   - 桌面版也能試用：到設定頁把「翻譯引擎」改成「本機翻譯模型」
-- **📂 開啟本機 PDF 檔案**：檢視器上方 📂 按鈕可直接選檔或拖曳 PDF，不需要「允許存取檔案網址」（手機上就是用這個方式開 PDF）
+- **📂 開啟本機 PDF 檔案（v1.7 新增）**：檢視器上方 📂 按鈕可直接選檔或拖曳 PDF，不需要「允許存取檔案網址」（手機上就是用這個方式開 PDF）
 - **🌗 暗黑主題、完全離線、零 API Key**
 
 ## 📦 安裝
@@ -250,12 +250,12 @@ MIT License
   - Hover the ball to reveal its panel: target language (shared with the PDF viewer), hover toggle, ⚙ options, hide ball
   - The ✕ button lets you hide the ball just this once, on the current site, or on all sites; undo it anytime via right-click (on the page or the toolbar icon) → "氛圍閱讀：重新顯示翻譯球", or from the options page
 - **🧩 Microsoft Edge desktop support (new in v1.5)**: translation works on Edge 148+; AI Summary / Ask AI currently need Edge Canary / Dev
-- **📱 Local translation model (works on Edge for Android)**: when the browser has no built-in AI, translation falls back to Opus-MT models running on the CPU
+- **📱 Local translation model (new in v1.7, works on Edge for Android)**: when the browser has no built-in AI, translation falls back to Opus-MT models running on the CPU
   - Each language pair downloads about 110MB from Hugging Face on first use, then stays in the browser and works offline
   - English → Traditional/Simplified Chinese, French, German, Spanish, Russian, Portuguese, and other languages → English (non-English pairs pivot through English); Japanese and Korean targets are not supported
   - Slower and lower quality than the built-in AI; AI Summary / Ask AI still need Gemini Nano
   - To try it on desktop, set "翻譯引擎" (translation engine) to "本機翻譯模型" (local model) in the options page
-- **📂 Open a local PDF file**: the 📂 button in the viewer opens a file picker (or drop a PDF), no file-URL permission needed — this is how you open PDFs on a phone
+- **📂 Open a local PDF file (new in v1.7)**: the 📂 button in the viewer opens a file picker (or drop a PDF), no file-URL permission needed — this is how you open PDFs on a phone
 
 ## Install
 
