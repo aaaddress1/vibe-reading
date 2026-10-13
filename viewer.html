@@ -23,6 +23,7 @@
       <span id="srcLangInfo" class="src-info" title="自動偵測來源語言"></span>
       <label class="label" for="targetLang">翻譯成</label>
       <select id="targetLang" class="select"></select>
+      <button id="pdfDarkBtn" class="icon-btn" title="PDF 暗黑模式" aria-pressed="false">🌙</button>
       <button id="settingsBtn" class="icon-btn" title="設定">⚙</button>
       <span class="font-ctrl" title="調整右側翻譯字體大小">
         <button id="fontDec" class="font-btn">A−</button>
@@ -149,6 +150,8 @@
   </div>
 
   <script src="lib/pdf.min.js"></script>
+  <script src="lib/ort/ort.wasm.min.js"></script>
+  <script src="layout.js"></script>
   <script src="translate-core.js"></script>
   <script src="viewer.js"></script>
 </body>

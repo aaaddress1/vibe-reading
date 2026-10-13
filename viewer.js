@@ -31,6 +31,7 @@ const els = {
   zoomLabel:     document.getElementById('zoomLabel'),
   targetLang:    document.getElementById('targetLang'),
   settingsBtn:   document.getElementById('settingsBtn'),
+  pdfDarkBtn:    document.getElementById('pdfDarkBtn'),
   aiBadge:       document.getElementById('aiBadge'),
   translateBtn:  document.getElementById('translateBtn'),
   stopBtn:       document.getElementById('stopBtn'),
@@ -87,7 +88,7 @@ let pdfUrl        = null;
 let pdfDoc        = null;
 let abortCtrl     = null;
 let translatorObj = null;
-let paragraphs    = [];     // { page, text, rect:{x0,y0,x1,y1} }
+let paragraphs    = [];     // { page, text, rect:{x0,y0,x1,y1}, parts:[{page, rect}] } — page/rect = first part
 const pageWraps   = {};     // pageNum -> { wrap, viewport }
 let renderScale   = 1;
 let detectedSource = 'en';
@@ -222,6 +223,7 @@ document.addEventListener('DOMContentLoaded', async () => {
   document.querySelectorAll('.llm-name').forEach(el => { el.textContent = BROWSER.llm; });
   await populateTargetSelect();
   setupFontControl();
+  setupPdfDark();
   setupDivider();
   setupSelectionAsk();
   setupReverseLocate();
@@ -477,6 +479,23 @@ function applyTransFont(px) {
   chrome.storage.local.set({ transFont });
 }
 
+// ─── PDF dark mode (persisted) ──────────────────────────────────────────────────
+function applyPdfDark(on) {
+  document.body.classList.toggle('pdf-dark', on);
+  els.pdfDarkBtn.textContent = on ? '☀️' : '🌙';
+  els.pdfDarkBtn.title = on ? '關閉 PDF 暗黑模式' : 'PDF 暗黑模式';
+  els.pdfDarkBtn.setAttribute('aria-pressed', String(on));
+}
+
+function setupPdfDark() {
+  chrome.storage.local.get('pdfDark', ({ pdfDark }) => applyPdfDark(!!pdfDark));
+  els.pdfDarkBtn.addEventListener('click', () => {
+    const on = !document.body.classList.contains('pdf-dark');
+    applyPdfDark(on);
+    chrome.storage.local.set({ pdfDark: on });
+  });
+}
+
 function setupFontControl() {
   chrome.storage.local.get('transFont', ({ transFont: saved }) => {
     applyTransFont(saved || FONT_DEFAULT);
@@ -570,6 +589,7 @@ async function loadAndRenderPdf() {
 
   paragraphs = [];
   await renderPages(true);
+  paragraphs = refineParagraphs(paragraphs);
   updateZoomLabel();
 }
 
@@ -629,10 +649,32 @@ async function renderPages(computeParagraphs) {
     };
 
     if (computeParagraphs) {
-      for (const para of extractParagraphs(content.items)) {
-        paragraphs.push({ page: p, text: para.text, rect: para.rect });
+      const regions = await detectLayout(canvas, renderVp, p, total);
+      for (const para of extractParagraphs(content.items, regions)) {
+        paragraphs.push({ page: p, text: para.text, rect: para.rect, kind: para.kind });
       }
     }
+  }
+}
+
+// Run the layout model on a rendered page and map its boxes from canvas pixels
+// to PDF coordinates. Returns null (→ geometric segmentation) if unavailable.
+let layoutDisabled = false;
+async function detectLayout(canvas, renderVp, p, total) {
+  if (layoutDisabled || !window.VibeLayout) return null;
+  setStatus(`版面分析第 ${p} / ${total} 頁`);
+  try {
+    const boxes = await window.VibeLayout.detect(canvas);
+    if (!boxes) { layoutDisabled = true; return null; }
+    return boxes.map(b => {
+      const [ax, ay] = renderVp.convertToPdfPoint(b.x0, b.y0);
+      const [bx, by] = renderVp.convertToPdfPoint(b.x1, b.y1);
+      return { label: b.label, score: b.score,
+               x0: Math.min(ax, bx), y0: Math.min(ay, by), x1: Math.max(ax, bx), y1: Math.max(ay, by) };
+    });
+  } catch (e) {
+    console.warn('[氛圍閱讀] 版面分析失敗，改用規則分段：', e);
+    return null;
   }
 }
 
@@ -791,14 +833,109 @@ function gotoPage(delta) {
   if (tr) els.pdfPane.scrollBy({ top: (tr.top - paneTop) - 8, behavior: 'smooth' });
 }
 
-function extractParagraphs(items) {
+// Layout labels (see layout.js) whose text we translate, and those whose text
+// is dropped (figures, tables, formulas, running headers/footers, page numbers).
+// 'content' (table of contents) is skipped: in papers the model mostly fires on
+// code listings with it.
+const LAYOUT_TEXT = new Set(['text', 'abstract', 'reference', 'footnote', 'paragraph_title',
+  'doc_title', 'figure_title', 'table_title', 'chart_title']);
+const LAYOUT_SKIP = new Set(['image', 'chart', 'table', 'formula', 'formula_number', 'header',
+  'footer', 'number', 'seal', 'header_image', 'footer_image', 'algorithm', 'aside_text', 'content']);
+const LAYOUT_TEXT_MIN = 0.5;   // a text box must be fairly confident to claim items
+const LAYOUT_SKIP_MIN = 0.3;   // figures/tables are often scored lower; text boxes still win
+
+// items: pdf.js text items. regions (optional): layout boxes in PDF coordinates
+// { label, score, x0, y0, x1, y1 } with y0 < y1. Returns [{ text, rect, kind }].
+function extractParagraphs(items, regions) {
   // Keep non-empty, horizontal text only — drop rotated items such as the
   // vertical "arXiv:…" watermark, which otherwise corrupts margin/column geometry.
   const its = items.filter(it =>
     it.str.trim() &&
     Math.abs(it.transform[1]) < 2 && Math.abs(it.transform[2]) < 2);
   if (!its.length) return [];
+  if (!regions || !regions.length) return geometricParagraphs(its, 'text');
 
+  const textBoxes = regions.filter(r => LAYOUT_TEXT.has(r.label) && r.score >= LAYOUT_TEXT_MIN);
+  const skipBoxes = regions.filter(r => LAYOUT_SKIP.has(r.label) && r.score >= LAYOUT_SKIP_MIN);
+  // Text boxes are padded outward to catch items on their edges; skip boxes
+  // are shrunk inward, since a figure/code box often overhangs the first line
+  // of the paragraph below it.
+  const contains = (r, x, y, pad) => x >= r.x0 - pad && x <= r.x1 + pad && y >= r.y0 - pad && y <= r.y1 + pad;
+  const area = r => (r.x1 - r.x0) * (r.y1 - r.y0);
+
+  // Assign each item (by its centre) to the smallest text box containing it;
+  // otherwise drop it if it sits in a figure/table/header box; otherwise leave
+  // it for the geometric fallback.
+  const byBox = new Map();
+  const loose = [];
+  const skipped = [];
+  for (const it of its) {
+    const cx = it.transform[4] + (it.width || 0) / 2;
+    const cy = it.transform[5] + (it.height || 0) / 2;
+    let best = null;
+    for (const r of textBoxes) if (contains(r, cx, cy, 2) && (!best || area(r) < area(best))) best = r;
+    if (best) {
+      if (!byBox.has(best)) byBox.set(best, []);
+      byBox.get(best).push(it);
+    } else if (skipBoxes.some(r => contains(r, cx, cy, -3))) {
+      skipped.push(it);
+    } else {
+      loose.push(it);
+    }
+  }
+  // Losing real text is worse than letting a table row through: a line inside
+  // a figure/table box that reads like running prose is kept (low-confidence
+  // figure boxes sometimes overhang captions or body paragraphs).
+  if (skipped.length) {
+    for (const line of buildVisualLines(skipped)) if (isProseLine(line.text)) loose.push(...line.items);
+  }
+
+  // Reading units: each text box (its paragraphs in order), plus each
+  // paragraph built from loose items. Then order the units by column.
+  const textMinX = Math.min(...its.map(it => it.transform[4]));
+  const textMaxX = Math.max(...its.map(it => it.transform[4] + (it.width || 0)));
+  const units = [];
+  for (const [box, boxItems] of byBox) {
+    // A box no wider than ~a column can't contain a gutter, so wide gaps in it
+    // are justified spacing, not a column break.
+    const columnWide = (box.x1 - box.x0) < (textMaxX - textMinX) * 0.6;
+    const lines = buildVisualLines(boxItems, !columnWide).sort(lineCompare);
+    const paras = paragraphsFromLines(lines, { references: box.label === 'reference' })
+      .map(p => ({ ...p, kind: box.label }));
+    if (paras.length) units.push({ x0: box.x0, y0: box.y0, x1: box.x1, y1: box.y1, paras });
+  }
+  for (const p of loose.length ? geometricParagraphs(loose, 'text') : []) {
+    units.push({ ...p.rect, paras: [p] });
+  }
+  // Figures/tables take part in ordering as empty units, so a full-width
+  // figure separates the column text above it from its caption below.
+  for (const r of skipBoxes) {
+    if (['image', 'chart', 'table', 'algorithm'].includes(r.label)) units.push({ ...r, paras: [] });
+  }
+  return orderUnits(units, its).flatMap(u => u.paras).map(markCaption);
+}
+
+// Sentence-like text: 8+ tokens that are mostly words and few code symbols, or
+// a run of 15+ CJK characters. Figure labels and table cells are short or numeric.
+function isProseLine(text) {
+  const cjk = (text.match(/[㐀-鿿぀-ヿ가-힯]/g) || []).length;
+  if (cjk >= 15) return true;
+  const toks = text.split(/\s+/).filter(Boolean);
+  if (toks.length < 8) return false;
+  const wordy = toks.filter(t => /^[(“"‘']?[A-Za-z][A-Za-z'’-]*[.,;:)”"’]*$/.test(t)).length;
+  const codey = (text.match(/[=<>{}$\\|`]|::|->|=>|\w_\w|"\s*:/g) || []).length;
+  return wordy / toks.length >= 0.7 && codey <= 1;
+}
+
+// The model sometimes labels a caption as plain text; recognise the usual
+// "Figure 2." / "Table 1:" prefixes so captions never block paragraph joins.
+function markCaption(p) {
+  return p.kind === 'text' && /^(Fig\.|Figure|Table|Algorithm|Listing)\s*[A-Z]?\d+[.:]/.test(p.text)
+    ? { ...p, kind: 'figure_title' } : p;
+}
+
+// Pure geometric segmentation (no layout model): lines → column blocks → paragraphs.
+function geometricParagraphs(its, kind) {
   // Build visual line fragments first. PDF.js may emit either whole-line items
   // or word/run-level items; column detection on raw items is therefore brittle.
   const lines = buildVisualLines(its);
@@ -806,6 +943,33 @@ function extractParagraphs(items) {
 
   const out = [];
   for (const block of readingBlocksFromLines(lines)) out.push(...paragraphsFromLines(block));
+  return out.map(p => markCaption({ ...p, kind }));
+}
+
+// Reading order for layout units ({ x0, y0, x1, y1 } in PDF coordinates, y up):
+// full-width units split the page into zones; inside a zone the left column is
+// read top-to-bottom before the right column.
+function orderUnits(units, its) {
+  const minX = Math.min(...its.map(it => it.transform[4]));
+  const maxX = Math.max(...its.map(it => it.transform[4] + (it.width || 0)));
+  const mid = (minX + maxX) / 2;
+  const tol = (maxX - minX) * 0.03;
+  const col = u => (u.x0 < mid - tol && u.x1 > mid + tol) ? 'full'
+    : ((u.x0 + u.x1) / 2 < mid ? 'left' : 'right');
+  const byTop = (a, b) => b.y1 - a.y1;
+
+  const out = [];
+  let zone = [];
+  const flush = () => {
+    out.push(...zone.filter(u => col(u) === 'left').sort(byTop),
+             ...zone.filter(u => col(u) === 'right').sort(byTop));
+    zone = [];
+  };
+  for (const u of units.slice().sort(byTop)) {
+    if (col(u) === 'full') { flush(); out.push(u); }
+    else zone.push(u);
+  }
+  flush();
   return out;
 }
 
@@ -820,22 +984,49 @@ function median(nums) {
   return a[Math.floor(a.length / 2)];
 }
 
+// Median of [value, weight] pairs.
+function weightedMedian(pairs) {
+  const a = pairs.filter(p => p[1] > 0).sort((x, y) => x[0] - y[0]);
+  const total = a.reduce((s, p) => s + p[1], 0);
+  let acc = 0;
+  for (const [v, w] of a) { acc += w; if (acc >= total / 2) return v; }
+  return a.length ? a[a.length - 1][0] : 0;
+}
+
 function makeLine(items, fallbackY) {
   const sorted = items.slice().sort((a, b) => a.transform[4] - b.transform[4]);
   const starts  = sorted.map(it => it.transform[4]);
   const ends    = sorted.map(it => it.transform[4] + (it.width || 0));
-  const heights = sorted.map(it => it.height || 10);
+  // Weight baseline and glyph height by character count: a superscript like
+  // "day⁻¹" arrives as several tiny items and, with a plain median, drags the
+  // line's y up and its fontH down — which then reads as a paragraph break.
+  const weight = it => Math.max(1, it.str.trim().length);
   return {
-    y: median(sorted.map(it => it.transform[5])) || fallbackY,
+    y: weightedMedian(sorted.map(it => [it.transform[5], weight(it)])) || fallbackY,
     startX: Math.min(...starts),
     endX: Math.max(...ends),
-    fontH: median(heights) || 10,
+    fontH: weightedMedian(sorted.map(it => [it.height || 10, weight(it)])) || 10,
     items: sorted,
     text: sorted.map(it => it.str).join(' ').replace(/\s+/g, ' ').trim(),
   };
 }
 
-function buildVisualLines(its) {
+// Join wrapped lines; a line ending in a hyphenated word fragment ("pre-")
+// continues the word without a space.
+function joinLines(texts) {
+  let out = '';
+  for (const t of texts) {
+    if (!out) out = t;
+    else if (/[a-z]-$/.test(out) && /^[a-z]/.test(t)) out += t;
+    else out += ' ' + t;
+  }
+  return out.replace(/\s+/g, ' ').trim();
+}
+
+// splitGaps: cut a row into separate line fragments at wide horizontal gaps
+// (column gutters). Off for text inside a single-column layout box, where a
+// wide gap is just justified spacing (e.g. after "tasks.  However,").
+function buildVisualLines(its, splitGaps = true) {
   const fontH = median(its.map(it => it.height || 10)) || 10;
   const rowTolerance = Math.max(3, fontH * 0.45);
   const sorted = its.slice().sort((a, b) => {
@@ -855,7 +1046,7 @@ function buildVisualLines(its) {
   const minX = Math.min(...its.map(it => it.transform[4]));
   const maxX = Math.max(...its.map(it => it.transform[4] + (it.width || 0)));
   const pageW = maxX - minX;
-  const gapThreshold = Math.max(12, fontH * 1.15, pageW * 0.022);
+  const gapThreshold = splitGaps ? Math.max(12, fontH * 1.15, pageW * 0.022) : Infinity;
 
   const lines = [];
   for (const r of rows) {
@@ -968,7 +1159,7 @@ function readingBlocksFromLines(lines) {
   return blocks.filter(b => b.length);
 }
 
-function paragraphsFromLines(lines) {
+function paragraphsFromLines(lines, opts = {}) {
   const L = lines.slice().sort(lineCompare).filter(l => l.text);
   if (!L.length) return [];
 
@@ -981,7 +1172,10 @@ function paragraphsFromLines(lines) {
   const rightEdge  = Math.max(...L.map(l => l.endX));
   const colWidth   = Math.max(1, rightEdge - leftMargin);
 
-  const indentTol = Math.max(12, colWidth * 0.025);  // first-line indent
+  // First-line indent threshold, relative to the body font: journals commonly
+  // indent ~1em (e.g. 10pt at 10.5pt type), which a fixed 12pt floor missed.
+  const bodyFontH = median(L.map(l => l.fontH)) || 10;
+  const indentTol = Math.max(5, bodyFontH * 0.6);
   const shortTol  = Math.max(16, colWidth * 0.15);   // ragged last line of a paragraph
 
   // Is this block justified (flush right margin)? If so, a line stopping short of
@@ -999,6 +1193,23 @@ function paragraphsFromLines(lines) {
   const sortedGaps = gaps.slice().sort((a, b) => a - b);
   const medianGap = sortedGaps.length ? sortedGaps[Math.floor(sortedGaps.length / 2)] : 0;
 
+  // Hanging-indent block (reference lists): each entry's first line touches the
+  // left edge and its continuation lines are inset. There, every line back at
+  // the left edge starts a new entry and the first-line-indent rule is off —
+  // a 2-line entry's continuation line looks exactly like a first-line indent.
+  // `references` is the layout model's hint; without it, require most lines to
+  // be inset and the block to open at the left edge.
+  const hangTol  = Math.max(4, bodyFontH * 0.4);
+  // Left edge = the leftmost x shared by at least two lines, so one stray line
+  // (e.g. a footer fragment caught by a coarse box edge) can't move it.
+  const starts   = L.map(l => l.startX).sort((a, b) => a - b);
+  const minStart = starts.find(x => starts.filter(s => Math.abs(s - x) <= hangTol).length >= 2) ?? starts[0];
+  const atLeft   = L.filter(l => l.startX <= minStart + hangTol).length;
+  const inset    = L.filter(l => l.startX > minStart + hangTol && l.startX <= minStart + bodyFontH * 2.5).length;
+  const hangingBlock = opts.references
+    ? atLeft >= 1 && inset >= 1
+    : L.length >= 4 && L[0].startX <= minStart + hangTol && atLeft >= 2 && inset >= atLeft * 1.2;
+
   // Split into paragraphs. indent/short tests are guarded against centred lines
   // (titles, author blocks) which inset on both sides.
   const groups = [];
@@ -1014,22 +1225,31 @@ function paragraphsFromLines(lines) {
     const bigGap       = Math.abs(prev.y - cur.y) > fh * 1.4;
     const reachesRight = cur.endX > rightEdge - shortTol;
     // First-line indent is judged against NEIGHBOURING lines, not the global
-    // page margin: a real paragraph-initial line is inset relative to the line
-    // below it (which returns to the block's left edge). Blocks that are inset
-    // as a whole (e.g. JMLR abstracts) have equal startX on every line, so they
-    // no longer split line-by-line.
+    // page margin: a real paragraph-initial line is inset relative to BOTH the
+    // line above and the line below (which returns to the block's left edge).
+    // Blocks inset as a whole (e.g. JMLR abstracts) have equal startX on every
+    // line, and a hanging-indent continuation line (reference lists) is no
+    // further in than the line after it — neither reads as an indent.
     const nxt          = L[i + 1];
-    const blockLeft    = Math.min(prev.startX, nxt ? nxt.startX : prev.startX);
-    const indented     = cur.startX > blockLeft + indentTol && reachesRight;
+    const below        = nxt ? nxt.startX : prev.startX;
+    const indented     = !hangingBlock &&
+      cur.startX > Math.max(prev.startX, below) + indentTol && reachesRight;
+    const newEntry     = hangingBlock && cur.startX <= minStart + hangTol;
+    // Reference lists without any indent (e.g. AAAI) separate entries only by
+    // slightly looser leading (≈13.6pt vs 11pt): compare against this block's
+    // own typical gap. Body text is left out — its leading jitters with
+    // inline math.
+    const refGap       = opts.references && !hangingBlock &&
+      Math.abs(prev.y - cur.y) > medianGap + Math.max(1.5, medianGap * 0.1);
 
-    if (bigGap || indented) { groups.push(g); g = []; }
+    if (bigGap || indented || newEntry || refGap) { groups.push(g); g = []; }
     g.push(cur);
   }
   if (g.length) groups.push(g);
 
   return groups.map(grp => {
     const flat = grp.flatMap(l => l.items);
-    const text = grp.map(l => l.text).join(' ').replace(/\s+/g, ' ').trim();
+    const text = joinLines(grp.map(l => l.text));
     let x0 = Infinity, y0 = Infinity, x1 = -Infinity, y1 = -Infinity;
     for (const it of flat) {
       const x = it.transform[4], y = it.transform[5];
@@ -1039,6 +1259,71 @@ function paragraphsFromLines(lines) {
     }
     return { text, rect: { x0, y0, x1, y1 } };
   }).filter(p => p.text.length > 20);
+}
+
+// Document-level cleanup over all pages' paragraphs ({ page, text, rect }):
+//  1. drop running headers/footers — short text repeated on 3+ pages (digits
+//     normalised, so "pp 5529–5545"-style page ranges still match);
+//  2. re-join a paragraph that a column or page break cut mid-sentence: the
+//     previous one ends without terminal punctuation and the next starts
+//     lowercase. A joined paragraph keeps every piece's location in `parts`
+//     so locate / reverse-locate can highlight across columns and pages.
+function refineParagraphs(paras) {
+  const norm = t => t.replace(/\d+/g, '#').replace(/\s+/g, ' ').trim();
+  const pagesByText = new Map();
+  for (const p of paras) {
+    if (p.text.length > 150) continue;
+    const k = norm(p.text);
+    if (!pagesByText.has(k)) pagesByText.set(k, new Set());
+    pagesByText.get(k).add(p.page);
+  }
+  // Page 1 is exempt: running headers usually repeat the paper's own title,
+  // which we still want translated once.
+  const isRunning = p => p.page > 1 && p.kind !== 'doc_title' &&
+    p.text.length <= 150 && pagesByText.get(norm(p.text)).size >= 3;
+
+  // Only flowing text joins; a figure/table caption may sit between the two
+  // halves of a paragraph (the figure interrupts the column), a heading may not.
+  const JOINABLE = new Set(['text', 'abstract', 'reference', 'footnote']);
+  const CAPTION  = new Set(['figure_title', 'table_title', 'chart_title']);
+
+  const ENDS_SENTENCE = /[.!?:;。！？：；]["'”’)\]]*$/;
+  // Abstract / reference boxes sometimes stop a line short, leaving the rest
+  // as plain text, so those kinds may join plain text. (A new reference entry
+  // starts with an uppercase author, so body text never attaches to it.)
+  const family = x => (x === 'abstract' || x === 'footnote' ? 'text' : x);
+  const compatible = (a, b) => a === b || (a === 'reference' && b === 'text') || (a === 'text' && b === 'reference');
+
+  const out = [];
+  for (const p of paras) {
+    if (isRunning(p)) continue;
+    const kind = p.kind || 'text';
+    let prev = null;
+    if (JOINABLE.has(kind)) {
+      for (let k = out.length - 1; k >= 0; k--) {
+        if (CAPTION.has(out[k].kind)) continue;
+        // A finished footnote sits between a page's last body paragraph and
+        // its continuation on the next page — look past it. An unfinished
+        // "footnote" is usually body text the model mislabelled; it may join.
+        if (out[k].kind === 'footnote' && ENDS_SENTENCE.test(out[k].text)) continue;
+        if (compatible(family(out[k].kind), family(kind))) prev = out[k];
+        break;
+      }
+    }
+    const continues = prev &&
+      p.page - prev.parts[prev.parts.length - 1].page <= 1 &&
+      prev.text.length >= 40 &&
+      !ENDS_SENTENCE.test(prev.text) &&
+      /^[a-z(]/.test(p.text);
+    if (continues) {
+      prev.text = joinLines([prev.text, p.text]);
+      prev.parts.push({ page: p.page, rect: p.rect });
+    } else {
+      out.push({ page: p.page, text: p.text, rect: p.rect, kind,
+                 parts: [{ page: p.page, rect: p.rect }] });
+    }
+  }
+  return out;
 }
 
 // ─── Translation engine ─────────────────────────────────────────────────────────
@@ -1282,26 +1567,36 @@ function fillTranslation(el, text, isError = false) {
   if (isError) t.classList.add('err');
 }
 
+// Draw highlight boxes over every piece of a paragraph (a paragraph re-joined
+// across a column or page break has several). Returns the first box.
+function highlightParagraph(para) {
+  document.querySelectorAll('.hl').forEach(e => e.remove());
+  let first = null;
+  for (const { page, rect } of para.parts || [{ page: para.page, rect: para.rect }]) {
+    const pg = pageWraps[page];
+    if (!pg) continue;
+    const [ax, ay] = pg.viewport.convertToViewportPoint(rect.x0, rect.y0);
+    const [bx, by] = pg.viewport.convertToViewportPoint(rect.x1, rect.y1);
+    const pad = 4;
+    const hl = document.createElement('div');
+    hl.className = 'hl';
+    hl.style.left   = (Math.min(ax, bx) - pad) + 'px';
+    hl.style.top    = (Math.min(ay, by) - pad) + 'px';
+    hl.style.width  = (Math.abs(bx - ax) + pad * 2) + 'px';
+    hl.style.height = (Math.abs(by - ay) + pad * 2) + 'px';
+    pg.wrap.appendChild(hl);
+    first = first || hl;
+  }
+  return first;
+}
+
 function locate(idx, segEl) {
   const para = paragraphs[idx];
-  const pg = pageWraps[para.page];
-  if (!pg) return;
+  if (!pageWraps[para.page]) return;
 
   document.querySelectorAll('.seg-active').forEach(e => e.classList.remove('seg-active'));
   segEl.classList.add('seg-active');
-  document.querySelectorAll('.hl').forEach(e => e.remove());
-
-  const [ax, ay] = pg.viewport.convertToViewportPoint(para.rect.x0, para.rect.y0);
-  const [bx, by] = pg.viewport.convertToViewportPoint(para.rect.x1, para.rect.y1);
-  const pad = 4;
-  const hl = document.createElement('div');
-  hl.className = 'hl';
-  hl.style.left   = (Math.min(ax, bx) - pad) + 'px';
-  hl.style.top    = (Math.min(ay, by) - pad) + 'px';
-  hl.style.width  = (Math.abs(bx - ax) + pad * 2) + 'px';
-  hl.style.height = (Math.abs(by - ay) + pad * 2) + 'px';
-  pg.wrap.appendChild(hl);
-  hl.scrollIntoView({ behavior: 'smooth', block: 'center' });
+  highlightParagraph(para)?.scrollIntoView({ behavior: 'smooth', block: 'center' });
 }
 
 // ─── Reverse: click original text on the left → highlight translation on right ───
@@ -1322,7 +1617,7 @@ function setupReverseLocate() {
 
     const idx = findParagraphAt(pageNum, px, py);
     if (idx < 0) return;
-    reverseLocate(idx, pg, paragraphs[idx]);
+    reverseLocate(idx, paragraphs[idx]);
   });
 }
 
@@ -1330,22 +1625,23 @@ function findParagraphAt(page, px, py) {
   let best = -1, bestArea = Infinity, nearest = -1, nearestDy = Infinity;
   for (let i = 0; i < paragraphs.length; i++) {
     const p = paragraphs[i];
-    if (p.page !== page) continue;
-    const r = p.rect;
-    if (px >= r.x0 && px <= r.x1 && py >= r.y0 && py <= r.y1) {
-      const area = (r.x1 - r.x0) * (r.y1 - r.y0);
-      if (area < bestArea) { bestArea = area; best = i; }
+    for (const { page: pPage, rect: r } of p.parts || [{ page: p.page, rect: p.rect }]) {
+      if (pPage !== page) continue;
+      if (px >= r.x0 && px <= r.x1 && py >= r.y0 && py <= r.y1) {
+        const area = (r.x1 - r.x0) * (r.y1 - r.y0);
+        if (area < bestArea) { bestArea = area; best = i; }
+      }
+      const cy = (r.y0 + r.y1) / 2;
+      const dy = Math.abs(cy - py);
+      if (dy < nearestDy) { nearestDy = dy; nearest = i; }
     }
-    const cy = (r.y0 + r.y1) / 2;
-    const dy = Math.abs(cy - py);
-    if (dy < nearestDy) { nearestDy = dy; nearest = i; }
   }
   // exact hit preferred; otherwise the vertically closest paragraph (within reason)
   if (best >= 0) return best;
   return nearestDy < 40 ? nearest : -1;
 }
 
-function reverseLocate(idx, pg, para) {
+function reverseLocate(idx, para) {
   const seg = segEls[idx];
   if (!seg) return;
 
@@ -1357,18 +1653,8 @@ function reverseLocate(idx, pg, para) {
   seg.classList.add('seg-flash');
   seg.scrollIntoView({ behavior: 'smooth', block: 'center' });
 
-  // also draw the highlight box on the PDF for visual confirmation
-  document.querySelectorAll('.hl').forEach(e => e.remove());
-  const [ax, ay] = pg.viewport.convertToViewportPoint(para.rect.x0, para.rect.y0);
-  const [bx, by] = pg.viewport.convertToViewportPoint(para.rect.x1, para.rect.y1);
-  const pad = 4;
-  const hl = document.createElement('div');
-  hl.className = 'hl';
-  hl.style.left   = (Math.min(ax, bx) - pad) + 'px';
-  hl.style.top    = (Math.min(ay, by) - pad) + 'px';
-  hl.style.width  = (Math.abs(bx - ax) + pad * 2) + 'px';
-  hl.style.height = (Math.abs(by - ay) + pad * 2) + 'px';
-  pg.wrap.appendChild(hl);
+  // also draw the highlight box(es) on the PDF for visual confirmation
+  highlightParagraph(para);
 }
 
 // ─── Selection → ask Gemini Nano (requirement 6) ─────────────────────────────────

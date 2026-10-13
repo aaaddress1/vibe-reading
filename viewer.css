@@ -180,6 +180,16 @@ body {
 }
 .page-wrap canvas { display: block; }
 
+/* PDF dark mode (topbar 🌙): invert the rendered page, then rotate hues back
+   so figure colours keep roughly their hue — the trick Dark Reader uses for
+   PDFs. invert(0.9) gives a soft dark grey page and off-white text instead of
+   pure black/white. Only the canvas is filtered (display only; the layout
+   model reads the unfiltered pixels), so highlights and selection keep their
+   colours. */
+body.pdf-dark .page-wrap { background: #1c1c1e; box-shadow: 0 2px 12px rgba(0,0,0,0.8); }
+body.pdf-dark .page-wrap canvas { filter: invert(0.9) hue-rotate(180deg); }
+.icon-btn[aria-pressed="true"] { border-color: var(--accent); color: var(--accent); }
+
 /* highlight box drawn over the PDF page */
 .hl {
   position: absolute; z-index: 3;
