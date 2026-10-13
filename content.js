@@ -144,7 +144,7 @@
       onIndeterminate: () => {},
     });
     translator._target = targetLang;
-    status(translator.type === 'translator' ? 'Translator API ✓' : `${VT.BROWSER.llm} ✓`);
+    status(`${VT.engineLabel(translator)} ✓`);
     return translator;
   }
 
@@ -174,7 +174,7 @@
   function enqueue(el) { queue.push(el); pump(); }
   function pump() {
     if (!abortCtrl || abortCtrl.signal.aborted) return;
-    const max = translator && translator.type === 'lm' ? 1 : 4;
+    const max = translator && translator.type !== 'translator' ? 1 : 4;
     while (activeWorkers < max && queue.length) {
       const el = queue.shift();
       activeWorkers++;

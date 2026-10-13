@@ -54,6 +54,12 @@
   - 滑鼠移到球上展開選單：切換語言、開關懸停、⚙ 設定、隱藏球
   - **隱藏翻譯球（v1.5 新增）**：按 ✕ 可選「只隱藏這次／這個網站不再顯示／所有網站都不顯示」；在網頁按右鍵 →「重新顯示翻譯球」或到設定頁即可改回
 - **🧩 支援 Microsoft Edge 桌面版（v1.5 新增）**：Edge 148+ 可直接翻譯；AI 摘要／反白問答目前需 Edge Canary／Dev
+- **📱 本機翻譯模型（Android 版 Edge 也能用）**：瀏覽器沒有內建 AI 時，自動改用 Opus-MT 翻譯模型，在本機 CPU 執行
+  - 每個語言組合第一次使用時從 Hugging Face 下載約 110MB，之後存在瀏覽器裡、離線可用
+  - 支援英文翻成繁中／簡中／法／德／西／俄／葡，以及其他語言翻成英文（非英文之間會經英文轉譯）；不支援翻成日文、韓文
+  - 品質與速度不如內建 AI；AI 摘要／反白問答仍需 Gemini Nano
+  - 桌面版也能試用：到設定頁把「翻譯引擎」改成「本機翻譯模型」
+- **📂 開啟本機 PDF 檔案**：檢視器上方 📂 按鈕可直接選檔或拖曳 PDF，不需要「允許存取檔案網址」（手機上就是用這個方式開 PDF）
 - **🌗 暗黑主題、完全離線、零 API Key**
 
 ## 📦 安裝
@@ -166,6 +172,7 @@ Chrome 的 `commands.suggested_key` 只是建議快捷鍵；如果 `Alt+T` 已�
 | **PDF.js** | 渲染 PDF 與可選取文字層 |
 | **PP-DocLayout-S（onnxruntime-web）** | 本機 CPU 版面分析（約 5MB 模型、每頁約 0.2 秒）：辨識內文、標題、圖說、圖、表、頁首頁尾，讓段落切得正確、圖表文字不混入翻譯 |
 | **Content script 注入** | 一般網頁的沈浸式行內翻譯（共用上述同一引擎） |
+| **Opus-MT（onnxruntime-web，背景 service worker）** | 沒有內建 AI 時的本機翻譯備援（每個語言組合約 110MB，首次下載） |
 
 ## ⚠️ 系統需求
 
@@ -178,8 +185,9 @@ Chrome 的 `commands.suggested_key` 只是建議快捷鍵；如果 `Alt+T` 已�
     （或 Chrome **140+** 的 CPU 後援：16GB RAM + 4 核）、首次需不限流量網路下載模型（約 2–4GB）
   - Apple Silicon（M 系列）符合需求；較舊的 Intel Mac 可能需靠 CPU 後援
 - 或 Microsoft Edge **148+**（桌面版；AI 摘要 / 反白問答目前僅 Edge Canary / Dev 可用，見〈安裝〉）
-- 不支援 Android / iOS（行動版瀏覽器尚未開放內建 AI）
-- ⚠️ Brave 等其他 Chromium 瀏覽器**無法使用**：沒有提供 `Translator` / `LanguageModel` API
+- **Android 版 Edge** 等沒有內建 AI 的 Chromium 瀏覽器：翻譯改用本機翻譯模型（見上方〈功能〉），AI 摘要／反白問答無法使用
+  - Android 版 Chrome 不支援擴充功能；Android 版 Edge 需從 Edge 外掛程式商店安裝
+- 不支援 iOS
 
 ## 🙏 致謝
 
@@ -197,6 +205,8 @@ Chrome 的 `commands.suggested_key` 只是建議快捷鍵；如果 `Alt+T` 已�
 也向啟發本專案的「沉浸式翻譯」致敬。
 
 PDF 版面分析使用 PaddlePaddle 的 [PP-DocLayout-S](https://huggingface.co/PaddlePaddle/PP-DocLayout-S)（Apache-2.0）與 Microsoft 的 [onnxruntime-web](https://github.com/microsoft/onnxruntime)（MIT），授權條款見 `lib/layout/`、`lib/ort/`。
+
+本機翻譯模型為赫爾辛基大學的 [Opus-MT](https://github.com/Helsinki-NLP/Opus-MT)（CC-BY 4.0；使用 [Xenova](https://huggingface.co/Xenova) 轉出的 ONNX 版本，執行時才下載、不隨套件散布），分詞使用 Hugging Face 的 [tokenizers.js](https://github.com/huggingface/tokenizers.js)（Apache-2.0），簡轉繁使用 [opencc-js](https://github.com/nk2028/opencc-js)（MIT；字典資料 Apache-2.0），授權條款見 `lib/tokenizers/`、`lib/opencc/`。
 
 歡迎 issue 與 PR — [Issues](https://github.com/aaaddress1/vibe-reading/issues) 是個好的起點。
 
@@ -240,6 +250,12 @@ MIT License
   - Hover the ball to reveal its panel: target language (shared with the PDF viewer), hover toggle, ⚙ options, hide ball
   - The ✕ button lets you hide the ball just this once, on the current site, or on all sites; undo it anytime via right-click (on the page or the toolbar icon) → "氛圍閱讀：重新顯示翻譯球", or from the options page
 - **🧩 Microsoft Edge desktop support (new in v1.5)**: translation works on Edge 148+; AI Summary / Ask AI currently need Edge Canary / Dev
+- **📱 Local translation model (works on Edge for Android)**: when the browser has no built-in AI, translation falls back to Opus-MT models running on the CPU
+  - Each language pair downloads about 110MB from Hugging Face on first use, then stays in the browser and works offline
+  - English → Traditional/Simplified Chinese, French, German, Spanish, Russian, Portuguese, and other languages → English (non-English pairs pivot through English); Japanese and Korean targets are not supported
+  - Slower and lower quality than the built-in AI; AI Summary / Ask AI still need Gemini Nano
+  - To try it on desktop, set "翻譯引擎" (translation engine) to "本機翻譯模型" (local model) in the options page
+- **📂 Open a local PDF file**: the 📂 button in the viewer opens a file picker (or drop a PDF), no file-URL permission needed — this is how you open PDFs on a phone
 
 ## Install
 
@@ -309,7 +325,8 @@ Open `chrome://extensions/shortcuts`, find Vibe Reading, and confirm that "用�
 
 - Chrome **138+** on Windows 10/11, macOS 13+, Linux, or Chromebook Plus
 - Or Microsoft Edge **148+** (desktop; AI Summary / Ask-AI currently need Edge Canary / Dev, see Install)
-- Not available on Android/iOS, nor on other Chromium browsers such as Brave (no `Translator` / `LanguageModel` APIs).
+- Edge for Android and other Chromium browsers without built-in AI: translation uses the local model (see Features); AI Summary / Ask-AI are unavailable. Chrome for Android does not support extensions; install from Edge Add-ons on Edge for Android.
+- Not available on iOS.
 
 ## 🙏 Acknowledgements
 
@@ -322,6 +339,8 @@ Thanks to the contributors who made this project better:
 And a tribute to "Immersive Translate" for the inspiration.
 
 PDF layout analysis uses PaddlePaddle's [PP-DocLayout-S](https://huggingface.co/PaddlePaddle/PP-DocLayout-S) (Apache-2.0) and Microsoft's [onnxruntime-web](https://github.com/microsoft/onnxruntime) (MIT); see `lib/layout/` and `lib/ort/` for their licenses.
+
+The local translation models are [Opus-MT](https://github.com/Helsinki-NLP/Opus-MT) by the University of Helsinki (CC-BY 4.0; ONNX exports by [Xenova](https://huggingface.co/Xenova), downloaded at runtime and not bundled). Tokenization uses Hugging Face's [tokenizers.js](https://github.com/huggingface/tokenizers.js) (Apache-2.0) and Simplified→Traditional conversion uses [opencc-js](https://github.com/nk2028/opencc-js) (MIT; dictionary data Apache-2.0); see `lib/tokenizers/` and `lib/opencc/`.
 
 ## License
 

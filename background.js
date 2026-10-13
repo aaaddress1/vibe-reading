@@ -1,4 +1,4 @@
-'use strict';
+import * as localMT from './local-mt.js';
 
 const MENU_PAGE      = 'vibe-translate-page';
 const MENU_SELECTION = 'vibe-translate-selection';
@@ -93,6 +93,7 @@ async function enableHover(tab) {
 
 // ─── Context menu (right-click) ────────────────────────────────────────────────
 function setupMenu() {
+  if (!chrome.contextMenus) return;   // not available on mobile (Edge for Android)
   chrome.contextMenus.removeAll(() => {
     // contexts:['all'] so the PDF native viewer (whose frame URL is a
     // chrome-extension:// address) still surfaces the entry; handleTrigger
@@ -148,7 +149,7 @@ chrome.runtime.onInstalled.addListener((details) => {
 });
 chrome.runtime.onStartup.addListener(setupMenu);
 
-chrome.contextMenus.onClicked.addListener((info, tab) => {
+chrome.contextMenus?.onClicked.addListener((info, tab) => {
   if (info.menuItemId === MENU_PAGE) handleTrigger(tab);
   else if (info.menuItemId === MENU_SELECTION) translateSelection(tab, info.selectionText);
   else if (info.menuItemId === MENU_HOVER) enableHover(tab);
@@ -162,13 +163,65 @@ chrome.runtime.onMessage.addListener((msg) => {
 });
 
 // ─── Toolbar icon click ─────────────────────────────────────────────────────────
-chrome.action.onClicked.addListener(handleTrigger);
+chrome.action?.onClicked.addListener(handleTrigger);
 
 // ─── Keyboard shortcuts (customizable in the browser's extension settings) ───
-chrome.commands.onCommand.addListener(async (command) => {
+chrome.commands?.onCommand.addListener(async (command) => {
   if (command !== 'translate-pdf' && command !== 'translate-selection') return;
   const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
   if (!tab) return;
   if (command === 'translate-selection') await translateSelection(tab);
   else await handleTrigger(tab);
+});
+
+// ─── Local translation engine (local-mt.js) ─────────────────────────────────────
+// Pages without the built-in AI APIs (Edge for Android) translate through this
+// port. Jobs run one at a time — a model's sessions can't run concurrently — and
+// jobs from a page that has gone away are dropped.
+let mtChain = Promise.resolve();
+let mtBusy = 0;
+let mtKeepAlive = null;
+
+// An extension service worker is stopped after ~30s without extension events or
+// API calls; a long download or a slow phone can exceed that mid-job.
+function mtJobStarted() {
+  if (mtBusy++ === 0) mtKeepAlive = setInterval(() => chrome.runtime.getPlatformInfo(), 20e3);
+}
+function mtJobEnded() {
+  if (--mtBusy === 0) clearInterval(mtKeepAlive);
+}
+
+async function runMtJob(msg, post) {
+  const onProgress = progress => post({ id: msg.id, progress });
+  if (msg.op === 'status') {
+    const plan = localMT.planFor(msg.src, msg.tgt);
+    if (!plan) return { supported: false };
+    return { supported: true, downloaded: await localMT.isDownloaded(plan), sizeMB: localMT.downloadSizeMB(plan) };
+  }
+  if (msg.op === 'prepare') {
+    await localMT.prepare(msg.src, msg.tgt, onProgress);
+    return true;
+  }
+  if (msg.op === 'translate') return localMT.translate(msg.text, msg.src, msg.tgt, onProgress);
+  throw new Error(`unknown op ${msg.op}`);
+}
+
+chrome.runtime.onConnect.addListener((port) => {
+  if (port.name !== 'vibe-mt') return;
+  let open = true;
+  port.onDisconnect.addListener(() => { open = false; });
+  const post = (m) => { if (open) port.postMessage(m); };
+  port.onMessage.addListener((msg) => {
+    mtChain = mtChain.then(async () => {
+      if (!open) return;
+      mtJobStarted();
+      try {
+        post({ id: msg.id, result: await runMtJob(msg, post) });
+      } catch (e) {
+        post({ id: msg.id, error: e?.message || String(e) });
+      } finally {
+        mtJobEnded();
+      }
+    });
+  });
 });

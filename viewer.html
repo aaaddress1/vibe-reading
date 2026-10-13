@@ -18,6 +18,8 @@
     </div>
     <div class="t-center">
       <span id="pdfSource" class="pdf-source" title="點擊開啟原始 PDF">—</span>
+      <button id="openFileBtn" class="icon-btn" title="開啟本機 PDF 檔案">📂</button>
+      <input id="fileInput" type="file" accept="application/pdf,.pdf" hidden>
     </div>
     <div class="t-right">
       <span id="srcLangInfo" class="src-info" title="自動偵測來源語言"></span>
@@ -111,6 +113,15 @@
         <label id="welcomeLangLabel" class="welcome-label" for="welcomeTargetLang">預設目標語言</label>
         <select id="welcomeTargetLang" class="select welcome-select"></select>
         <p id="welcomeLangCopy" class="welcome-copy">之後每次開啟 PDF 都會優先翻譯成這個語言，也可以在右上角隨時改。</p>
+      </div>
+
+      <div class="welcome-section">
+        <label id="welcomeEngineLabel" class="welcome-label" for="welcomeEngine">翻譯引擎</label>
+        <select id="welcomeEngine" class="select welcome-select">
+          <option value="auto">自動</option>
+          <option value="local">本機翻譯模型</option>
+        </select>
+        <p id="welcomeEngineCopy" class="welcome-copy"></p>
       </div>
 
       <div class="welcome-section">

@@ -18,12 +18,17 @@ const {
   BROWSER,
   lmAvailability,
   lmCreate,
+  localStatus,
+  enginePreference,
+  engineLabel,
 } = window.VibeTranslate;
 
 // ─── DOM refs ─────────────────────────────────────────────────────────────────
 const els = {
   appVer:        document.getElementById('appVer'),
   pdfSource:     document.getElementById('pdfSource'),
+  openFileBtn:   document.getElementById('openFileBtn'),
+  fileInput:     document.getElementById('fileInput'),
   srcLangInfo:   document.getElementById('srcLangInfo'),
   zoomIn:        document.getElementById('zoomIn'),
   zoomOut:       document.getElementById('zoomOut'),
@@ -60,6 +65,9 @@ const els = {
   askHead:       document.getElementById('askHead'),
   welcomeModal:      document.getElementById('welcomeModal'),
   welcomeTargetLang: document.getElementById('welcomeTargetLang'),
+  welcomeEngine:     document.getElementById('welcomeEngine'),
+  welcomeEngineLabel: document.getElementById('welcomeEngineLabel'),
+  welcomeEngineCopy:  document.getElementById('welcomeEngineCopy'),
   welcomeClose:      document.getElementById('welcomeClose'),
   welcomeOpenExt:    document.getElementById('welcomeOpenExt'),
   welcomeRecheck:    document.getElementById('welcomeRecheck'),
@@ -107,6 +115,10 @@ const WELCOME_TEXT = {
     settingsTitle: '設定',
     targetLabel: '預設目標語言',
     targetCopy: '之後每次開啟 PDF 都會優先翻譯成這個語言，也可以在右上角隨時改。',
+    engineLabel: '翻譯引擎',
+    engineAuto: '自動（預設）',
+    engineLocal: '本機翻譯模型',
+    engineCopy: '「自動」優先使用瀏覽器內建 AI，沒有時（例如 Android 版 Edge）才改用本機翻譯模型。「本機翻譯模型」一律在本機 CPU 執行 Opus-MT 模型：每個語言組合第一次使用時下載約 117MB，品質與速度不如內建 AI。變更後按「翻譯」重新翻譯即可套用。',
     fileLabel: '讀取本機 PDF',
     fileCopy: '若要翻譯電腦裡的 PDF，請到擴充功能管理頁，把「允許存取檔案網址」設成 enable。',
     shortcutLabel: '快捷鍵',
@@ -136,6 +148,7 @@ const WELCOME_TEXT = {
       unavailable: '翻譯：目前的目標語言或裝置不支援',
       missing: '翻譯：無法使用',
     },
+    aiTranslateLocal: mb => `翻譯：使用本機翻譯模型（第一次翻譯時下載約 ${mb}MB）`,
     aiPrompt: {
       available: 'AI 摘要／反白問答：可以使用 ✓',
       downloadable: 'AI 摘要／反白問答：可以使用，第一次使用時會下載模型（數 GB）',
@@ -165,6 +178,10 @@ const WELCOME_TEXT = {
     settingsTitle: 'Settings',
     targetLabel: 'Default target language',
     targetCopy: 'PDFs will be translated into this language by default. You can change it anytime from the top-right menu.',
+    engineLabel: 'Translation engine',
+    engineAuto: 'Automatic (default)',
+    engineLocal: 'Local translation model',
+    engineCopy: 'Automatic uses the browser’s built-in AI and falls back to the local model only when there is none (e.g. Edge for Android). Local translation model always runs Opus-MT on your CPU: each language pair downloads about 117MB on first use, and it is slower and less accurate than the built-in AI. Click "Translate" again to apply a change.',
     fileLabel: 'Read local PDFs',
     fileCopy: 'To translate PDFs from your computer, open the extension details page and enable "Allow access to file URLs".',
     shortcutLabel: 'Keyboard shortcut',
@@ -194,6 +211,7 @@ const WELCOME_TEXT = {
       unavailable: 'Translation: not supported for this target language or device',
       missing: 'Translation: not available',
     },
+    aiTranslateLocal: mb => `Translation: using the local translation model (about ${mb}MB downloads on first use)`,
     aiPrompt: {
       available: 'AI Summary / Ask AI: ready ✓',
       downloadable: 'AI Summary / Ask AI: ready; the model (several GB) downloads on first use',
@@ -248,17 +266,27 @@ document.addEventListener('DOMContentLoaded', async () => {
 
   await checkAI();
 
+  setupOpenFile();
+
   if (!pdfUrl) {
+    showOpenFilePrompt();
     setStatus(isWelcome
       ? welcomeText.noPdfWelcomeStatus
-      : '未指定 PDF。請開啟一個 PDF 分頁後點擊插件圖示或右鍵選單。');
+      : '未指定 PDF。請選擇 PDF 檔案，或開啟一個 PDF 分頁後點擊插件圖示。');
     return;
   }
 
   showPdfSource();
+  await openPdf(async () => {
+    const resp = await fetch(pdfUrl);
+    if (!resp.ok) throw new Error(`HTTP ${resp.status}（若為本機檔案，請到 ${BROWSER.scheme}://extensions 開啟「允許存取檔案網址」）`);
+    return resp.arrayBuffer();
+  });
+});
 
+async function openPdf(loadBuffer) {
   try {
-    await loadAndRenderPdf();
+    await loadAndRenderPdf(loadBuffer);
     detectedSource = await detectSourceLang(paragraphs.slice(0, 5).map(p => p.text).join(' ').slice(0, 1000));
     els.srcLangInfo.textContent = `偵測來源：${detectedSource}`;
     els.translateBtn.disabled = false;
@@ -269,7 +297,50 @@ document.addEventListener('DOMContentLoaded', async () => {
     showError('載入 PDF 失敗：' + e.message);
     setStatus('載入失敗');
   }
-});
+}
+
+// ─── Open a PDF file from the device ────────────────────────────────────────────
+// The way in on mobile, where PDFs are downloads (content:// URIs the extension
+// can't fetch), and handy on desktop without file-URL access.
+function setupOpenFile() {
+  els.openFileBtn.addEventListener('click', () => {
+    // One PDF per viewer: a loaded viewer opens a fresh one for the next file.
+    if (pdfDoc) chrome.tabs.create({ url: chrome.runtime.getURL('viewer.html') });
+    else els.fileInput.click();
+  });
+  els.fileInput.addEventListener('change', () => {
+    const file = els.fileInput.files?.[0];
+    if (file) openPdfFile(file);
+  });
+  document.addEventListener('dragover', (e) => { if (!pdfDoc) e.preventDefault(); });
+  document.addEventListener('drop', (e) => {
+    if (pdfDoc) return;
+    e.preventDefault();
+    const file = [...(e.dataTransfer?.files || [])].find(f => /pdf$/i.test(f.type) || /\.pdf$/i.test(f.name));
+    if (file) openPdfFile(file);
+  });
+}
+
+function showOpenFilePrompt() {
+  els.pdfInner.innerHTML = `
+    <div class="open-pdf">
+      <div class="open-pdf-icon">📄</div>
+      <button type="button" class="btn btn-primary open-pdf-btn">📂 選擇 PDF 檔案</button>
+      <p>或把 PDF 拖曳到這裡</p>
+    </div>`;
+  els.pdfInner.querySelector('.open-pdf-btn').addEventListener('click', () => els.fileInput.click());
+}
+
+function openPdfFile(file) {
+  if (pdfDoc) return;
+  pdfUrl = null;
+  clearError();
+  els.pdfSource.textContent = `📁 本機檔案：${file.name}`;
+  els.pdfSource.title = file.name;
+  els.pdfSource.onclick = null;
+  document.title = `[氛圍閱讀] ${file.name}`;
+  openPdf(() => file.arrayBuffer());
+}
 
 function populateTargetSelect() {
   fillLangSelect(els.targetLang);
@@ -298,6 +369,14 @@ async function setupFirstRunPrompt(showWelcome) {
   els.welcomeTargetLang.addEventListener('change', () => {
     els.targetLang.value = els.welcomeTargetLang.value;
     chrome.storage.local.set({ targetLang: els.welcomeTargetLang.value });
+    checkAI();
+    refreshAiStatus();
+  });
+  els.welcomeEngine.value = await enginePreference();
+  els.welcomeEngine.addEventListener('change', async () => {
+    await chrome.storage.local.set({ engine: els.welcomeEngine.value });
+    translatorObj = null;   // the next translation picks the new engine
+    clearError();
     checkAI();
     refreshAiStatus();
   });
@@ -380,14 +459,25 @@ async function refreshAiStatus() {
   const translate = AI_RANK[translator] >= AI_RANK[prompt] ? translator : prompt;
 
   const okish = s => s === 'available' || s === 'downloadable';
-  els.aiTranslateStatus.textContent = t.aiTranslate[translate];
-  els.aiTranslateStatus.className = `file-access-status ${okish(translate) ? 'ok' : 'warn'}`;
+  const forceLocal = await enginePreference() === 'local';
+  const local = okish(translate) && !forceLocal ? null : await localStatus(target === 'en' ? 'fr' : 'en', target);
+  if (local?.supported) {
+    els.aiTranslateStatus.textContent = t.aiTranslateLocal(local.sizeMB);
+    els.aiTranslateStatus.className = 'file-access-status ok';
+  } else if (forceLocal) {
+    els.aiTranslateStatus.textContent = t.aiTranslate.unavailable;
+    els.aiTranslateStatus.className = 'file-access-status warn';
+  } else {
+    els.aiTranslateStatus.textContent = t.aiTranslate[translate];
+    els.aiTranslateStatus.className = `file-access-status ${okish(translate) ? 'ok' : 'warn'}`;
+  }
   els.aiPromptStatus.textContent = t.aiPrompt[prompt];
   els.aiPromptStatus.className = `file-access-status ${okish(prompt) ? 'ok' : 'warn'}`;
 
   const g = t.guide[BROWSER.scheme === 'edge' ? 'edge' : 'chrome'];
   const tips = [];
-  if (translate === 'missing') tips.push(g.translateMissing);
+  if (local?.supported) { /* the local model covers translation */ }
+  else if (translate === 'missing') tips.push(g.translateMissing);
   else if (translate === 'unavailable') tips.push(g.translateUnavailable);
   if (prompt === 'missing') tips.push(g.promptMissing);
   else if (prompt === 'unavailable') tips.push(g.promptUnavailable);
@@ -450,6 +540,10 @@ function applyWelcomeText(text) {
   els.settingsBtn.title = text.settingsTitle;
   els.welcomeLangLabel.textContent = text.targetLabel;
   els.welcomeLangCopy.textContent = text.targetCopy;
+  els.welcomeEngineLabel.textContent = text.engineLabel;
+  els.welcomeEngine.options[0].textContent = text.engineAuto;
+  els.welcomeEngine.options[1].textContent = text.engineLocal;
+  els.welcomeEngineCopy.textContent = text.engineCopy;
   els.welcomeFileLabel.textContent = text.fileLabel;
   els.welcomeFileCopy.textContent = text.fileCopy;
   els.welcomeShortcutLabel.textContent = text.shortcutLabel;
@@ -511,18 +605,33 @@ async function checkAI() {
   badge.textContent = '偵測中...';
   badge.className = 'badge';
   const target = els.targetLang.value;
+  const forceLocal = await enginePreference() === 'local';
 
-  if ('Translator' in self) {
+  if (!forceLocal && 'Translator' in self) {
     try {
       const a = await Translator.availability({ sourceLanguage: 'en', targetLanguage: target });
       if (a !== 'unavailable') { badge.textContent = 'Translator API ✓'; badge.className = 'badge badge-ok'; return; }
     } catch (_) {}
   }
-  if ('LanguageModel' in self) {
+  if (!forceLocal && 'LanguageModel' in self) {
     try {
       const a = await lmAvailability();
       if (a !== 'unavailable') { badge.textContent = `${BROWSER.llm} ✓`; badge.className = 'badge badge-ok'; return; }
     } catch (_) {}
+  }
+
+  const local = await localStatus(detectedSource, target);
+  if (local.supported) {
+    badge.textContent = local.downloaded ? '本機翻譯模型 ✓' : `本機翻譯模型（首次下載約 ${local.sizeMB}MB）`;
+    badge.className = 'badge badge-ok';
+    return;
+  }
+  if (forceLocal) {
+    badge.textContent = '本機模型不支援此語言';
+    badge.className = 'badge badge-err';
+    els.translateBtn.disabled = true;
+    showError(`本機翻譯模型不支援翻譯成「${langName(target)}」。可改選其他目標語言，或到設定把翻譯引擎改回「自動」。`);
+    return;
   }
 
   badge.textContent = 'AI 不可用';
@@ -560,14 +669,12 @@ function showPdfSource() {
 let baseScale = 1;   // fit-to-width scale
 let zoom      = 1;   // user zoom multiplier
 
-async function loadAndRenderPdf() {
-  setStatus('下載 PDF 檔案...');
+async function loadAndRenderPdf(loadBuffer) {
+  setStatus(pdfUrl ? '下載 PDF 檔案...' : '讀取 PDF 檔案...');
   setIndeterminate(true);
   els.progressWrap.style.display = 'flex';
 
-  const resp = await fetch(pdfUrl);
-  if (!resp.ok) throw new Error(`HTTP ${resp.status}（若為本機檔案，請到 ${BROWSER.scheme}://extensions 開啟「允許存取檔案網址」）`);
-  const buf = await resp.arrayBuffer();
+  const buf = await loadBuffer();
   setIndeterminate(false);
 
   pdfDoc = await PDFJS.getDocument({ data: buf }).promise;
@@ -1354,6 +1461,8 @@ async function startTranslation(isManual) {
     const shells = paragraphs.map((p, i) => appendSegment(p, i));
     segEls = shells;
     const concurrency = translatorObj.type === 'translator' ? 4 : 1;
+    els.aiBadge.textContent = `${engineLabel(translatorObj)} ✓`;
+    els.aiBadge.className = 'badge badge-ok';
 
     // Requirement 5 — generate AI summary with Nano.
     // If translation uses NMT (different model), run summary concurrently;
@@ -1389,7 +1498,7 @@ async function startTranslation(isManual) {
       if (!isManual && isDownloadGestureError(e)) {
         clearError();
         els.progressWrap.style.display = 'none';
-        setStatus(`PDF 已載入；首次使用需點擊「翻譯」開始下載 ${BROWSER.name} 內建 AI 模型。`);
+        setStatus(`PDF 已載入；${e.message.replace(/。.*$/, '')}，請點擊「翻譯」開始。`);
       } else {
         showError(e.message);
         setStatus('發生錯誤');

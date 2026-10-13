@@ -45,7 +45,7 @@ body {
   flex-shrink: 0;
 }
 .t-left  { display: flex; align-items: center; gap: 8px; flex-shrink: 0; }
-.t-center { flex: 1; display: flex; justify-content: center; min-width: 0; padding: 0 12px; }
+.t-center { flex: 1; display: flex; align-items: center; gap: 8px; justify-content: center; min-width: 0; padding: 0 12px; }
 .t-right { display: flex; align-items: center; gap: 8px; flex-shrink: 0; }
 
 .pdf-source {
@@ -418,3 +418,30 @@ body.pdf-dark .page-wrap canvas { filter: invert(0.9) hue-rotate(180deg); }
 ::-webkit-scrollbar-track { background: var(--bg); }
 ::-webkit-scrollbar-thumb { background: #3c4043; border-radius: 6px; border: 3px solid var(--bg); }
 ::-webkit-scrollbar-thumb:hover { background: #4e5256; }
+
+/* ── Open a PDF file (no ?file=, e.g. on mobile) ─────────────── */
+.open-pdf {
+  margin: 12vh auto 0; max-width: 320px; padding: 28px 20px; text-align: center;
+  color: var(--muted); background: var(--surface);
+  border: 1px dashed var(--border); border-radius: 10px;
+}
+.open-pdf-icon { font-size: 40px; margin-bottom: 12px; }
+.open-pdf-btn { font-size: 14px; padding: 10px 18px; }
+.open-pdf p { margin-top: 10px; font-size: 12px; }
+
+/* ── Narrow screens (phones): stack the PDF above the translation ── */
+@media (max-width: 760px) {
+  body { height: 100dvh; }
+  #topbar { flex-wrap: wrap; padding: 6px 10px; gap: 6px; }
+  .t-left { gap: 6px; }
+  .repo-link, .app-ver, .src-info, .label { display: none; }
+  .t-center { order: 3; flex-basis: 100%; padding: 0; justify-content: flex-start; }
+  .t-right { flex-wrap: wrap; gap: 6px; justify-content: flex-end; flex-shrink: 1; }
+  .status-row { padding: 4px 10px; gap: 10px; }
+  .status-text { white-space: normal; }
+  #split { flex-direction: column; }
+  .pdf-pane { flex: 0 0 45% !important; padding: 8px; }
+  .divider { display: none; }
+  .trans-pane { flex: 1; padding: 10px; border-top: 2px solid var(--border); }
+  .zoom-ctrl { left: auto; right: 10px; bottom: auto; top: calc(45vh + 40px); padding: 2px 6px; }
+}

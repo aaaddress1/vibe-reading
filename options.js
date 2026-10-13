@@ -1,10 +1,12 @@
 'use strict';
 
 const sel      = document.getElementById('hoverModifier');
+const engine   = document.getElementById('engine');
 const showBall = document.getElementById('showBall');
 const saved    = document.getElementById('saved');
 
 async function refreshShortcut() {
+  if (!chrome.commands) return;   // no keyboard shortcuts on mobile
   const commands = await chrome.commands.getAll();
   const command = commands.find(({ name }) => name === 'translate-selection');
   document.getElementById('selectionShortcut').textContent =
@@ -52,8 +54,9 @@ function renderHiddenSites(sites) {
   }
 }
 
-chrome.storage.local.get(['hoverModifier', 'showBall', 'ballHiddenSites'], (cfg) => {
+chrome.storage.local.get(['hoverModifier', 'showBall', 'ballHiddenSites', 'engine'], (cfg) => {
   sel.value = cfg.hoverModifier || 'Shift';
+  engine.value = cfg.engine === 'local' ? 'local' : 'auto';
   showBall.checked = cfg.showBall !== false;   // default on
   renderHiddenSites(cfg.ballHiddenSites || []);
 });
@@ -71,4 +74,8 @@ sel.addEventListener('change', () => {
 
 showBall.addEventListener('change', () => {
   chrome.storage.local.set({ showBall: showBall.checked }, flashSaved);
+});
+
+engine.addEventListener('change', () => {
+  chrome.storage.local.set({ engine: engine.value }, flashSaved);
 });

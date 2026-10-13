@@ -2,6 +2,7 @@
 <html lang="zh-TW">
 <head>
   <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
   <title>氛圍閱讀 — 設定</title>
   <style>
     body { font: 15px/1.6 -apple-system, "Segoe UI", system-ui, sans-serif; background: #1f2430; color: #e6e6e6; margin: 0; padding: 28px; }
@@ -19,6 +20,7 @@
     input[type="checkbox"] { width: 18px; height: 18px; }
     .saved { color: #5fd38b; font-size: 13px; height: 18px; margin-top: 6px; }
     .row.stack { display: block; }
+    @media (max-width: 600px) { body { padding: 12px; } .card { padding: 16px; } .row { flex-wrap: wrap; } }
     .site-list { list-style: none; margin: 10px 0 0; padding: 0; }
     .site-list li { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 6px 10px; margin-top: 6px; background: #2b3140; border: 1px solid #3a4150; border-radius: 8px; }
     .site-list li span { overflow-wrap: anywhere; }
@@ -30,6 +32,17 @@
     <h1>📖 氛圍閱讀設定</h1>
     <p class="sub">網頁翻譯相關設定（變更即時生效，無需重新整理）</p>
 
+    <div class="row">
+      <div>
+        <label for="engine">翻譯引擎</label>
+        <div class="hint"><strong>自動</strong>：優先使用瀏覽器內建 AI；沒有時（例如 Android 版 Edge）改用本機翻譯模型。</div>
+        <div class="hint"><strong>本機翻譯模型</strong>：一律使用內附的 Opus-MT 模型，在本機 CPU 執行、不連網翻譯。每個語言組合第一次使用時需下載約 110MB；品質與速度不如內建 AI。</div>
+      </div>
+      <select id="engine">
+        <option value="auto">自動（預設）</option>
+        <option value="local">本機翻譯模型</option>
+      </select>
+    </div>
     <div class="row">
       <div>
         <label for="hoverModifier">懸停翻譯修飾鍵</label>
