@@ -44,7 +44,9 @@
 - **🎯 更忠實的 AI 翻譯（v1.5 新增）**：不摘要、不增刪，保留數字、單位、網址、公式與引用
 - **🔍 PDF 獨立縮放**：Ctrl+滾輪／觸控板雙指只縮放左側 PDF（不連動整頁），平滑如原生；←/→ 翻頁
 - **📰 雙欄論文支援**：自動偵測分欄，左右欄正確分開讀取
+- **📐 版面分析分段**：以本機小模型（PP-DocLayout-S，CPU 執行、完全離線）辨識段落、標題與圖表，圖表裡的文字不再被當成段落；跨欄、跨頁斷開的段落會自動接回
 - **🔤 翻譯字體調整**：A−／A+ 調整右側字體大小（記憶設定）
+- **🌙 PDF 暗黑模式**：右上角一鍵把左側 PDF 切成深色底、淺色字，圖表保留原本色調（記憶設定）
 - **🌐 網頁沈浸式翻譯**：每個網頁右下角**常駐一顆翻譯球**（可在設定頁關閉）
   - **點球＝整頁翻譯**：行內雙語對照，並自動跟隨無限捲動／SPA 新增的內容；再點一次切回原文
   - **預設懸停翻譯**：**按住修飾鍵（預設 Shift，可在設定頁更改）**移到段落即翻該段
@@ -109,6 +111,39 @@ Chrome 擴充功能預設**不能讀取 `file://` 本機檔案網址**。如果�
 4. 只想翻一段：反白後**右鍵 →「翻譯選取的文字」**
 5. 設定（修飾鍵、是否顯示球）：球選單的 ⚙，或 `chrome://extensions` →「詳細資料」→「擴充功能選項」
 
+## ⌨️ 快捷鍵一覽
+
+**全域快捷鍵**（可在 `chrome://extensions/shortcuts` 或 `edge://extensions/shortcuts` 更改）
+
+| 按鍵 | 功能 |
+|------|------|
+| `Alt+T` | PDF 分頁：開啟雙欄翻譯檢視器；一般網頁：整頁翻譯／切回原文 |
+| `Alt+S` | 翻譯網頁上反白的文字（浮卡顯示） |
+
+**一般網頁**
+
+| 操作 | 功能 |
+|------|------|
+| 點右下角 📖 翻譯球 | 整頁翻譯／切回原文 |
+| 按住 `Shift` ＋ 滑鼠移到段落 | 懸停翻譯該段（修飾鍵可在設定頁改成 `Alt`／`Ctrl`／`⌘`） |
+| `Esc` | 關閉選取翻譯浮卡 |
+
+**PDF 檢視器**
+
+| 按鍵／操作 | 功能 |
+|------|------|
+| `Ctrl` ＋ 滾輪、觸控板雙指 | 只縮放左側 PDF |
+| `←` ／ `→` | 上一頁／下一頁 |
+| `↑` ／ `↓` | 捲動 |
+| `PageUp` ／ `PageDown` | 捲動一個畫面 |
+| `Home` ／ `End` | 跳到第一頁／最後一頁 |
+| 點右側譯文 | 左側 PDF 捲動並高亮對應原文 |
+| 點左側原文 | 右側高亮對應譯文 |
+| 反白原文 → 「翻譯」／「問 AI」 | 開啟問 AI 視窗：`Enter` 送出、`Shift+Enter` 換行、`Esc` 關閉 |
+| 雙擊譯文 | 就地編輯：`Enter` 重新分段、`Ctrl+Enter` 或點別處儲存、`Esc` 取消 |
+| 右上角 🌙 | PDF 暗黑模式開關 |
+| 右上角 `A−`／`A+` | 調整譯文字體大小 |
+
 ## ⌨️ Alt+T 沒反應？
 
 選取文字翻譯的預設快捷鍵為 `Alt+S`（一般網頁適用，不包含瀏覽器內建 PDF 閱讀器）。在網頁反白文字後按快捷鍵，即以浮卡顯示譯文。可到擴充功能設定中的「選取翻譯快捷鍵」查看目前按鍵，點「設定快捷鍵」變更或移除。Edge 可直接開啟 `edge://extensions/shortcuts`，Chrome 則為 `chrome://extensions/shortcuts`。若快捷鍵衝突未自動指派，請手動設定。
@@ -129,6 +164,7 @@ Chrome 的 `commands.suggested_key` 只是建議快捷鍵；如果 `Alt+T` 已�
 | **Gemini Nano（Prompt API）** | 翻譯備援 + AI 摘要 + 反白問答 |
 | **LanguageDetector API** | 自動偵測來源語言 |
 | **PDF.js** | 渲染 PDF 與可選取文字層 |
+| **PP-DocLayout-S（onnxruntime-web）** | 本機 CPU 版面分析（約 5MB 模型、每頁約 0.2 秒）：辨識內文、標題、圖說、圖、表、頁首頁尾，讓段落切得正確、圖表文字不混入翻譯 |
 | **Content script 注入** | 一般網頁的沈浸式行內翻譯（共用上述同一引擎） |
 
 ## ⚠️ 系統需求
@@ -159,6 +195,8 @@ Chrome 的 `commands.suggested_key` 只是建議快捷鍵；如果 `Alt+T` 已�
   - [#5](https://github.com/aaaddress1/vibe-reading/pull/5) — Prompt API 相容新版 Chrome 的 MTP speculative decoding，並強化 AI 摘要的格式驗證
 
 也向啟發本專案的「沉浸式翻譯」致敬。
+
+PDF 版面分析使用 PaddlePaddle 的 [PP-DocLayout-S](https://huggingface.co/PaddlePaddle/PP-DocLayout-S)（Apache-2.0）與 Microsoft 的 [onnxruntime-web](https://github.com/microsoft/onnxruntime)（MIT），授權條款見 `lib/layout/`、`lib/ort/`。
 
 歡迎 issue 與 PR — [Issues](https://github.com/aaaddress1/vibe-reading/issues) 是個好的起點。
 
@@ -192,6 +230,8 @@ MIT License
 - **🎯 More faithful AI translation (new in v1.5)**: no summarizing, adding or dropping content; numbers, units, URLs, formulas and citations are preserved
 - **🔍 Independent PDF zoom**: Ctrl+wheel / trackpad pinch zooms only the left PDF (smooth, native-like); ←/→ flip pages
 - **📰 Two-column papers** detected and read column-by-column
+- **📐 Layout-aware paragraphs**: a small on-device layout model (PP-DocLayout-S, CPU, fully offline) finds paragraphs, headings, figures and tables, so text inside figures/tables stays out of the translation and paragraphs split across columns or pages are re-joined
+- **🌙 PDF dark mode**: one click (top right) turns the PDF pane dark with light text while figures keep their colours (remembered)
 - **🔤 Adjustable translation font** (A−/A+, remembered) · **🌗 dark theme · fully offline · no API key**
 - **🌐 Immersive web-page translation**: a persistent translate ball sits on every page (can be disabled in options)
   - **Click the ball = translate the whole page** inline and bilingually, following infinite scroll / SPA updates; click again to restore the original
@@ -224,6 +264,39 @@ Chrome extensions cannot read `file://` local file URLs by default. To translate
 
 Online PDFs still work without this permission, but local PDFs will fail to load until it is enabled.
 
+## Keyboard Shortcuts
+
+**Global** (change them at `chrome://extensions/shortcuts` or `edge://extensions/shortcuts`)
+
+| Key | Action |
+|-----|--------|
+| `Alt+T` | PDF tab: open the side-by-side viewer; regular page: translate the page / restore the original |
+| `Alt+S` | Translate the selected text on a web page (popup card) |
+
+**Web pages**
+
+| Input | Action |
+|-------|--------|
+| Click the 📖 ball (bottom right) | Translate the page / restore the original |
+| Hold `Shift` + point at a paragraph | Hover-translate that paragraph (modifier can be `Alt` / `Ctrl` / `⌘` in options) |
+| `Esc` | Close the selection-translation card |
+
+**PDF viewer**
+
+| Key / input | Action |
+|-------------|--------|
+| `Ctrl` + wheel, trackpad pinch | Zoom only the PDF pane |
+| `←` / `→` | Previous / next page |
+| `↑` / `↓` | Scroll |
+| `PageUp` / `PageDown` | Scroll one screen |
+| `Home` / `End` | Jump to the first / last page |
+| Click a translation | Scroll the PDF to its source and highlight it |
+| Click source text in the PDF | Highlight its translation |
+| Select source text → "翻譯" / "問 AI" | Open the Ask-AI panel: `Enter` sends, `Shift+Enter` new line, `Esc` closes |
+| Double-click a translation | Edit in place: `Enter` re-paragraphs, `Ctrl+Enter` or click away saves, `Esc` cancels |
+| 🌙 (top right) | Toggle PDF dark mode |
+| `A−` / `A+` (top right) | Translation font size |
+
 ## Alt+T Not Working?
 
 **Translate selected text:** select text on a regular webpage and press `Alt+S` to show its translation in a floating card. This shortcut does not apply to the browser's built-in PDF viewer. In the extension options, **選取翻譯快捷鍵** (Selection shortcut) shows the current binding; click **設定快捷鍵** (Configure) to change or remove it. You can also open `edge://extensions/shortcuts` in Edge or `chrome://extensions/shortcuts` in Chrome and find **用氛圍閱讀翻譯選取的文字** under Vibe Reading. If the suggested shortcut conflicts with another binding, assign one manually. After updating an unpacked extension, reload it and refresh your webpage.
@@ -247,6 +320,8 @@ Thanks to the contributors who made this project better:
   - [#1](https://github.com/aaaddress1/vibe-reading/pull/1) — two-column / block translation improvements for PDFs, plus macOS setup support
 
 And a tribute to "Immersive Translate" for the inspiration.
+
+PDF layout analysis uses PaddlePaddle's [PP-DocLayout-S](https://huggingface.co/PaddlePaddle/PP-DocLayout-S) (Apache-2.0) and Microsoft's [onnxruntime-web](https://github.com/microsoft/onnxruntime) (MIT); see `lib/layout/` and `lib/ort/` for their licenses.
 
 ## License
 
