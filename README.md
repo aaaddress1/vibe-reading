@@ -11,6 +11,8 @@
 
 ![氛圍閱讀 Vibe Reading 介面預覽](preview.png)
 
+![在論文中反白文字，直接問 Gemini Nano](ask-ai.png)
+
 ### 🎬 Demo
 
 ![氛圍閱讀 Vibe Reading Demo](demo.gif)
