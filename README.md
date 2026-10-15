@@ -13,6 +13,8 @@
 
 ![在論文中反白文字，直接問 Gemini Nano](ask-ai.png)
 
+![點任一段譯文，原文自動高亮定位](click-to-locate.png)
+
 ### 🎬 Demo
 
 ![氛圍閱讀 Vibe Reading Demo](demo.gif)
