@@ -1,10 +1,19 @@
 {
   "manifest_version": 3,
   "name": "氛圍閱讀 Vibe Reading",
-  "version": "1.7.0",
+  "version": "2.0.0",
   "description": "使用 Chrome／Edge 內建 AI 翻譯 PDF 與一般網頁：PDF 逐段對照＋雙向定位高亮、網頁沈浸式行內翻譯（整頁／選取／懸停），附 AI 摘要與反白問答，完全離線運行",
-  "permissions": ["activeTab", "tabs", "storage", "contextMenus", "scripting", "unlimitedStorage"],
-  "host_permissions": ["<all_urls>"],
+  "permissions": [
+    "activeTab",
+    "tabs",
+    "storage",
+    "contextMenus",
+    "scripting",
+    "unlimitedStorage"
+  ],
+  "host_permissions": [
+    "<all_urls>"
+  ],
   "icons": {
     "16": "icons/icon16.png",
     "48": "icons/icon48.png",
@@ -16,9 +25,19 @@
   },
   "content_scripts": [
     {
-      "matches": ["http://*/*", "https://*/*"],
-      "js": ["translate-core.js", "content.js"],
-      "css": ["content.css"],
+      "matches": [
+        "http://*/*",
+        "https://*/*"
+      ],
+      "js": [
+        "theme.js",
+        "translate-core.js",
+        "content.js"
+      ],
+      "css": [
+        "theme.css",
+        "content.css"
+      ],
       "run_at": "document_idle"
     }
   ],
@@ -39,12 +58,29 @@
   },
   "commands": {
     "translate-selection": {
-      "suggested_key": { "default": "Alt+S", "mac": "Alt+S" },
+      "suggested_key": {
+        "default": "Alt+S",
+        "mac": "Alt+S"
+      },
       "description": "用氛圍閱讀翻譯選取的文字"
     },
     "translate-pdf": {
-      "suggested_key": { "default": "Alt+T", "mac": "Alt+T" },
+      "suggested_key": {
+        "default": "Alt+T",
+        "mac": "Alt+T"
+      },
       "description": "用氛圍閱讀翻譯目前分頁（PDF 開檢視器，網頁就地翻譯）"
     }
-  }
+  },
+  "version_name": "2.0",
+  "web_accessible_resources": [
+    {
+      "resources": [
+        "icons/icon48.png"
+      ],
+      "matches": [
+        "<all_urls>"
+      ]
+    }
+  ]
 }

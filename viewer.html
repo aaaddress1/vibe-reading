@@ -1,31 +1,45 @@
 <!DOCTYPE html>
-<html lang="zh-TW">
+<html lang="zh-TW" class="vibe-ui" data-vibe-theme="charcoal">
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width,initial-scale=1">
   <title>PDF 中文翻譯檢視器</title>
+  <link id="appFavicon" rel="icon" href="icons/icon48.png">
+  <link rel="stylesheet" href="theme.css">
   <link rel="stylesheet" href="viewer.css">
+  <script src="theme.js"></script>
 </head>
-<body>
+<body class="pdf-dark">
 
   <header id="topbar">
     <div class="t-left">
-      <span class="logo">📖</span>
+      <img class="logo" src="icons/icon48.png" alt="" width="36" height="36">
       <span class="title">氛圍閱讀 Vibe Reading</span>
       <span id="appVer" class="app-ver"></span>
       <a class="repo-link" href="https://github.com/aaaddress1/vibe-reading"
          target="_blank" rel="noopener" title="在 GitHub 上查看原始碼">⭐ GitHub</a>
     </div>
     <div class="t-center">
-      <span id="pdfSource" class="pdf-source" title="點擊開啟原始 PDF">—</span>
-      <button id="openFileBtn" class="icon-btn" title="開啟本機 PDF 檔案">📂</button>
-      <input id="fileInput" type="file" accept="application/pdf,.pdf" hidden>
+      <div class="source-row">
+        <span id="pdfSource" class="pdf-source" title="點擊開啟原始 PDF">—</span>
+        <button id="openFileBtn" class="icon-btn" title="開啟本機 PDF 檔案">📂</button>
+        <input id="fileInput" type="file" accept="application/pdf,.pdf" hidden>
+      </div>
+      <div class="toolbar-status">
+        <span id="statusSpinner" class="translation-orb" aria-hidden="true" hidden></span>
+        <span id="statusText" class="status-text" role="status" aria-live="polite">載入中...</span>
+        <div id="progressWrap" class="progress-wrap" style="display:none">
+          <div class="progress-track"><div id="progressBar" class="progress-fill"></div></div>
+          <span id="progressLabel" class="progress-label"></span>
+        </div>
+      </div>
     </div>
     <div class="t-right">
       <span id="srcLangInfo" class="src-info" title="自動偵測來源語言"></span>
       <label class="label" for="targetLang">翻譯成</label>
       <select id="targetLang" class="select"></select>
-      <button id="pdfDarkBtn" class="icon-btn" title="PDF 暗黑模式" aria-pressed="false">🌙</button>
+      <select id="readingTheme" class="select theme-select" data-vibe-theme-select aria-label="閱讀配色" title="閱讀配色"><option value="charcoal">炭黑</option><option value="orange">橘黑</option><option value="pink">粉黑</option></select>
+      <button id="pdfDarkBtn" class="icon-btn" title="關閉 PDF 暗黑模式" aria-pressed="true">☀️</button>
       <button id="settingsBtn" class="icon-btn" title="設定">⚙</button>
       <span class="font-ctrl" title="調整右側翻譯字體大小">
         <button id="fontDec" class="font-btn">A−</button>
@@ -35,15 +49,13 @@
       <button id="translateBtn" class="btn btn-primary" disabled>▶ 翻譯</button>
       <button id="stopBtn" class="btn btn-stop" style="display:none">■ 停止</button>
     </div>
+      <a class="author-link" href="https://buymeacoffee.com/aaaddress1" target="_blank" rel="noopener noreferrer"
+         title="喜歡氛圍閱讀？請作者喝杯咖啡" aria-label="aaaddress1 — 請作者喝杯咖啡（另開分頁）">
+        <img class="author-avatar" src="icons/author-avatar.webp" alt="" width="24" height="24">
+        <span class="author-name">aaaddress1</span>
+        <svg class="author-coffee" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 8h12v7a5 5 0 0 1-5 5H9a5 5 0 0 1-5-5Z"/><path d="M16 9h2a3 3 0 1 1 0 6h-2M7 2v3M11 2v3M3 22h16"/></svg>
+      </a>
   </header>
-
-  <div id="statusRow" class="status-row">
-    <span id="statusText" class="status-text">載入中...</span>
-    <div id="progressWrap" class="progress-wrap" style="display:none">
-      <div class="progress-track"><div id="progressBar" class="progress-fill"></div></div>
-      <span id="progressLabel" class="progress-label"></span>
-    </div>
-  </div>
 
   <div id="errorBox" class="error-box" style="display:none"></div>
 

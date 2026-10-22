@@ -63,10 +63,10 @@ async function handleTrigger(tab) {
 // Inject the shared engine + content script (+ styles). Idempotent: re-running
 // is cheap and content.js guards against double-initialisation.
 async function injectInto(tabId) {
-  await chrome.scripting.insertCSS({ target: { tabId }, files: ['content.css'] });
+  await chrome.scripting.insertCSS({ target: { tabId }, files: ['theme.css', 'content.css'] });
   await chrome.scripting.executeScript({
     target: { tabId },
-    files: ['translate-core.js', 'content.js'],
+    files: ['theme.js', 'translate-core.js', 'content.js'],
   });
 }
 

@@ -382,7 +382,7 @@
   // ─── Floating toolbar ───────────────────────────────────────────────────────────
   function status(msg) {
     const s = document.querySelector(`#${TOOLBAR_ID} .vibe-tb-status`);
-    if (s) s.textContent = msg;
+    if (s) { s.textContent = msg; s.classList.toggle('vibe-busy', msg.includes('翻譯中')); }
   }
   function updateToolbarState() {
     const bar = document.getElementById(TOOLBAR_ID);
@@ -398,7 +398,7 @@
     bar.className = 'vibe-toolbar';
     const opts = VT.TARGET_LANGS.map((t) => `<option value="${t.code}">${t.name}</option>`).join('');
     bar.innerHTML =
-      '<div class="vibe-ball" title="點擊翻譯整頁（懸浮選單可調整）">📖</div>' +
+      '<div class="vibe-ball" title="點擊翻譯整頁（懸浮選單可調整）"><img src="' + chrome.runtime.getURL('icons/icon48.png') + '" alt="氛圍閱讀" width="28" height="28"></div>' +
       '<div class="vibe-panel">' +
         `<select class="vibe-tb-lang" title="翻譯成">${opts}</select>` +
         `<label class="vibe-tb-hover"><input type="checkbox"> <span class="vibe-tb-hovertxt">懸停(${modLabel()})</span></label>` +
