@@ -25,7 +25,6 @@ const {
 
 // ─── DOM refs ─────────────────────────────────────────────────────────────────
 const els = {
-  appFavicon:    document.getElementById('appFavicon'),
   statusSpinner: document.getElementById('statusSpinner'),
   appVer:        document.getElementById('appVer'),
   pdfSource:     document.getElementById('pdfSource'),
@@ -343,7 +342,7 @@ function openPdfFile(file) {
   els.pdfSource.textContent = `📁 本機檔案：${file.name}`;
   els.pdfSource.title = file.name;
   els.pdfSource.onclick = null;
-  document.title = `[氛圍閱讀] ${file.name}`;
+  document.title = file.name;
   openPdf(() => file.arrayBuffer());
 }
 
@@ -667,7 +666,7 @@ function showPdfSource() {
   els.pdfSource.textContent = isFile ? `📁 本機檔案：${fname}` : `🌐 ${pdfUrl}`;
   els.pdfSource.title = pdfUrl;
   els.pdfSource.onclick = () => window.open(pdfUrl, '_blank');
-  document.title = `[氛圍閱讀] ${fname}`;   // provisional; refined after metadata loads
+  document.title = fname;   // provisional; refined after metadata loads
 }
 
 // ─── Load & render PDF (canvas + selectable text layer) ─────────────────────────
@@ -688,7 +687,7 @@ async function loadAndRenderPdf(loadBuffer) {
   try {
     const meta = await pdfDoc.getMetadata();
     const docTitle = meta?.info?.Title?.trim();
-    if (docTitle) document.title = `[氛圍閱讀] ${docTitle}`;
+    if (docTitle) document.title = docTitle;
   } catch (_) {}
 
   // fit-to-width base scale
@@ -2127,7 +2126,6 @@ function setupDivider() {
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 function swapButtons(translating) {
   els.statusSpinner.hidden = !translating;
-  els.appFavicon.href = chrome.runtime.getURL(translating ? 'icons/busy.svg' : 'icons/icon48.png');
   els.translateBtn.style.display = translating ? 'none' : '';
   els.stopBtn.style.display      = translating ? '' : 'none';
 }

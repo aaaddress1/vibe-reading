@@ -7,3 +7,5 @@ Runtime: icons/icon16.png, icon48.png, icon128.png.
 Chrome store: logo-chrome-128.png (96px artwork plus 16px transparent margin).
 Edge store: logo-edge-300.png.
 README illustration: reading-illustration.png.
+
+Final background edit: preserve the simplified head, face and open book; replace the square yellow field with one solid yellow circular disc. Outside the circle must be transparent, with clean edges and no interior transparent holes. Keep the full reading-person illustration unchanged for README. Built-in image_gen was used.

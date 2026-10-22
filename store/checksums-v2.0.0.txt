@@ -1,2 +1,2 @@
-dc05860247df942fce4df512cfeaf178070363ce5d37c4a50f287140eb9a526d  vibe-reading-store-v2.0.0.zip
-2efc14672990ee81ea4066c98bc56d896f0c4c734bedcee4ea4c478ea600569e  vibe-reading-brand-v2.0.0.zip
+d017e57e6bccc3614397b9138508d398bd3689c83738bbdd2452f45f700e45a0  vibe-reading-store-v2.0.0.zip
+cf428309752b7e060801e0d41f4cea2a84a44ce2850efede03a2ff686da43028  vibe-reading-brand-v2.0.0.zip
