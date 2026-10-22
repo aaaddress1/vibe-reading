@@ -1,0 +1,11 @@
+Generated with the built-in image_gen tool. Full reading illustration and simplified logo are separate deliverables.
+
+Final logo prompt:
+Design one drastically simplified small-size app logomark for Vibe Reading 2.0 using the user's existing personal avatar and the full reading illustration as identity/palette references. Keep only swept-up burgundy hair, coral/red head and face peeking above a simple cream open book with one central dark V crease. Remove body, shirt, pattern, hands, arms, watch and earring. No text, thin details, shadows or gradients. Use warm golden yellow, burgundy, coral and cream; bold clean vector-like shapes, centered head-and-book on a full-bleed opaque yellow square. The full person-reading illustration remains separate for README.
+
+Runtime: icons/icon16.png, icon48.png, icon128.png.
+Chrome store: logo-chrome-128.png (96px artwork plus 16px transparent margin).
+Edge store: logo-edge-300.png.
+README illustration: reading-illustration.png.
+
+Final background edit: preserve the simplified head, face and open book; replace the square yellow field with one solid yellow circular disc. Outside the circle must be transparent, with clean edges and no interior transparent holes. Keep the full reading-person illustration unchanged for README. Built-in image_gen was used.
