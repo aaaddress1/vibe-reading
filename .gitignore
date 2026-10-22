@@ -9,3 +9,6 @@ Thumbs.db
 # Claude memory (local only)
 memory/
 MEMORY.md
+
+# Local build tools
+tmp/

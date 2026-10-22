@@ -1,4 +1,6 @@
-# 氛圍閱讀 Vibe Reading 📖
+# <img src="icons/icon48.png" width="40" height="40" alt=""> 氛圍閱讀 2.0 · Vibe Reading
+
+<img src="store/reading-illustration.png" alt="氛圍閱讀 2.0：紅黃配色的作者閱讀形象" width="320">
 
 > 向「沉浸式翻譯」致敬 — 但**完全離線、零 API Key、零雲端費用**。
 > 基於 Chrome／Edge 內建 AI（Translator API / Gemini Nano），在地端把整份 PDF 論文與**任意網頁**逐段翻成你的語言。
@@ -26,13 +28,25 @@
 
 ---
 
+## 2.0 更新（2026-10-22）
+
+- **新的閱讀形象**：插件、頁首與網頁翻譯球改用「頭、臉、書」的簡化 Logo；完整閱讀人物保留作為品牌主視覺。
+- **三款暗色配色**：炭黑、橘黑、粉黑，黑灰底色搭配少量重點色；工具列、圖卡、設定和浮動面板會同步套用並記住選擇。
+- **精簡閱讀介面**：狀態與進度整合進標題列，翻譯完成後自動隱藏；翻譯中使用彩色轉球。作者咖啡入口位於右上角。
+- **PDF 縮放優化**：依滾輪／觸控板手勢幅度縮放，同一畫面幀合併更新；只補畫可見及附近頁面，取消過期重繪並保留舊畫面，減少卡頓與閃白。高倍率補畫設有畫素上限。
+- **摘要語言修正**：摘要跟隨所選目標語言；若模型回傳其他語言，會逐欄翻譯並檢查後再顯示。切換語言會清除舊摘要，避免舊結果覆蓋新結果。
+
+[下載 2.0 安裝包與發布素材](https://github.com/aaaddress1/vibe-reading/releases/tag/v2.0.0)。GitHub 版本與商城審核／更新進度分開。
+
+**商城 Logo**：[Chrome 128×128 PNG](store/logo-chrome-128.png) · [Edge 300×300 PNG](store/logo-edge-300.png) · [512×512 PNG](store/logo-512.png)。Chrome 圖示採 96×96 圖案加透明留白，Edge 提供建議的 300×300 尺寸（[Chrome 規範](https://developer.chrome.com/docs/webstore/images)、[Edge 規範](https://learn.microsoft.com/en-us/microsoft-edge/extensions/publish/publish-extension)）。
+
 ## 這是什麼？
 
 一個 Chrome／Edge 擴充功能。打開 PDF（例如 arxiv 論文）後，**自動**把全文逐段翻譯，並排顯示在右側；在**一般網頁**上則以行內雙語對照就地翻譯。所有 AI 推理都跑在你自己的電腦上 —— 內容**不會送到任何雲端**。
 
 - 🔒 **完全離線**：用 Chrome 138+／Edge 148+ 內建的 Translator API 與 Gemini Nano，資料不離開瀏覽器
 - 💸 **零成本**：沒有 OpenAI / Anthropic 帳單，沒有 rate limit
-- 🌗 **暗黑主題**：護眼的雙欄閱讀介面
+- 🌗 **暗黑主題**：炭黑／橘黑／粉黑三種配色，保留黑灰閱讀底色；工具列、圖卡、設定與浮動面板同步切換並記憶設定
 
 ## ✨ 功能
 
@@ -40,7 +54,7 @@
 - **雙向定位**：點翻譯 → 左側論文捲動並**高亮對應原文**；點原文 → 右側翻譯高亮
 - **自動偵測來源語言**：你只需選「翻譯成」哪種語言（預設＝瀏覽器語言，可記憶設定）
 - **自動翻譯**：開啟即翻，也可手動重翻
-- **🧠 AI 摘要**：讀完整份論文後，頂部以 Gemini Nano 生成四大重點 —— 背景知識、相關研究、突破亮點、總結
+- **🧠 AI 摘要**：以瀏覽器內建 AI 生成背景知識、相關研究、突破亮點、總結；摘要沿用目標語言，若模型輸出其他語言會逐欄翻譯後顯示
 - **🤖 反白問 AI**：在論文中反白文字，直接向 Gemini Nano 提問；提問會附上 AI 摘要與該段前後文作為上下文，回答更精準（可隨時停止、視窗不鎖住可邊讀邊問）
 - **🌐 反白快速翻譯**：反白文字後點「翻譯」，面板立即顯示該段譯文——零輸入，輸入框保留供追問
 - **🧭 首次安裝導覽**：安裝後依瀏覽器語系顯示繁中／英文設定頁，提示選擇預設目標語言，並引導開啟「允許存取檔案網址」以讀取本機 PDF
@@ -49,11 +63,11 @@
 - **✏️ 字卡編輯模式**：雙擊任一段譯文就地編輯，可手動修改文字、按 Enter 重新分段；失焦或 Ctrl+Enter 儲存、Esc 取消
 - **⌨️ Alt+T 熱鍵**：在任意 PDF 分頁按 Alt+T 一鍵開啟翻譯；也可點工具列圖示或右鍵選單
 - **🎯 更忠實的 AI 翻譯（v1.5 新增）**：不摘要、不增刪，保留數字、單位、網址、公式與引用
-- **🔍 PDF 獨立縮放**：Ctrl+滾輪／觸控板雙指只縮放左側 PDF（不連動整頁），平滑如原生；←/→ 翻頁
+- **🔍 PDF 獨立縮放**：Ctrl+滾輪／觸控板雙指只縮放左側 PDF（不連動整頁），依手勢連續縮放，停下後只補畫附近頁面；←/→ 翻頁
 - **📰 雙欄論文支援**：自動偵測分欄，左右欄正確分開讀取
 - **📐 版面分析分段**：以本機小模型（PP-DocLayout-S，CPU 執行、完全離線）辨識段落、標題與圖表，圖表裡的文字不再被當成段落；跨欄、跨頁斷開的段落會自動接回
 - **🔤 翻譯字體調整**：A−／A+ 調整右側字體大小（記憶設定）
-- **🌙 PDF 暗黑模式**：右上角一鍵把左側 PDF 切成深色底、淺色字，圖表保留原本色調（記憶設定）
+- **🌙 PDF 暗黑模式**：新使用者預設採用深色 PDF，右上角一鍵切換；圖表保留原本色調，並沿用記住的設定
 - **🌐 網頁沈浸式翻譯**：每個網頁右下角**常駐一顆翻譯球**（可在設定頁關閉）
   - **點球＝整頁翻譯**：行內雙語對照，並自動跟隨無限捲動／SPA 新增的內容；再點一次切回原文
   - **預設懸停翻譯**：**按住修飾鍵（預設 Shift，可在設定頁更改）**移到段落即翻該段
@@ -224,7 +238,9 @@ MIT License
 
 ---
 
-# Vibe Reading 📖 (English)
+# Vibe Reading 2.0 (English)
+
+Version 2.0 introduces a simplified reading mascot, three dark accent palettes, a compact toolbar with automatically hidden completion status, frame-batched PDF zoom with cancellable nearby-page rendering, and summary-language validation with translation fallback. [Download v2.0.0](https://github.com/aaaddress1/vibe-reading/releases/tag/v2.0.0).
 
 > A tribute to "Immersive Translate" — but **fully offline, no API key, no cloud bills**.
 > Translates entire PDF papers and any web page paragraph-by-paragraph using Chrome's / Edge's built-in on-device AI (Translator API / Gemini Nano).
@@ -237,7 +253,7 @@ MIT License
 - **Two-way locate**: click a translation → paper scrolls & highlights the source; click source → translation highlights
 - **Auto source-language detection** — you only pick the *target* language (defaults to your browser language, remembered)
 - **Auto-translate** on open, with manual re-run
-- **🧠 AI Summary** by Gemini Nano: Background, Related Work, Highlights, Conclusion
+- **🧠 AI Summary** by the browser’s on-device model: Background, Related Work, Highlights, Conclusion. Summaries follow the selected target language, with field-by-field language checking and translation fallback.
 - **🤖 Ask-AI on selection**: highlight text and ask Gemini Nano; the prompt includes the AI summary and the surrounding paragraphs as context. Stoppable, and the panel is non-blocking so you can keep reading
 - **🌐 Quick-translate on selection**: hit "翻譯" on the floating bar and the panel instantly shows the translation — zero typing, with the input kept for follow-ups
 - **🧭 First-run guide**: shows Traditional Chinese or English based on browser language, lets you choose the default target language, and guides you to enable file URL access for local PDFs
@@ -246,7 +262,7 @@ MIT License
 - **✏️ Editable translation cards**: double-click any translation to edit in place — fix wording or re-paragraph with Enter; blur/Ctrl+Enter saves, Esc cancels
 - **⌨️ Alt+T hotkey** to open the translator on any PDF tab (also via toolbar icon or right-click menu)
 - **🎯 More faithful AI translation (new in v1.5)**: no summarizing, adding or dropping content; numbers, units, URLs, formulas and citations are preserved
-- **🔍 Independent PDF zoom**: Ctrl+wheel / trackpad pinch zooms only the left PDF (smooth, native-like); ←/→ flip pages
+- **🔍 Independent PDF zoom**: Ctrl+wheel / trackpad pinch zooms only the left PDF; updates are batched per frame and only nearby pages are sharpened; ←/→ flip pages
 - **📰 Two-column papers** detected and read column-by-column
 - **📐 Layout-aware paragraphs**: a small on-device layout model (PP-DocLayout-S, CPU, fully offline) finds paragraphs, headings, figures and tables, so text inside figures/tables stays out of the translation and paragraphs split across columns or pages are re-joined
 - **🌙 PDF dark mode**: one click (top right) turns the PDF pane dark with light text while figures keep their colours (remembered)
@@ -353,3 +369,11 @@ The local translation models are [Opus-MT](https://github.com/Helsinki-NLP/Opus-
 ## License
 
 MIT
+
+## 開發驗證 / Development checks
+
+以 Node.js 內建測試工具驗證摘要語言、縮放錨點、取消重繪與畫素上限：
+
+```sh
+node --test tests/viewer-summary.test.cjs tests/viewer-zoom.test.cjs
+```

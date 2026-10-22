@@ -1,36 +1,45 @@
 <!DOCTYPE html>
-<html lang="zh-TW">
+<html lang="zh-TW" class="vibe-ui" data-vibe-theme="charcoal">
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width,initial-scale=1">
   <title>氛圍閱讀 — 設定</title>
+  <link rel="icon" href="icons/icon48.png">
+  <link rel="stylesheet" href="theme.css">
+  <script src="theme.js"></script>
   <style>
-    body { font: 15px/1.6 -apple-system, "Segoe UI", system-ui, sans-serif; background: #1f2430; color: #e6e6e6; margin: 0; padding: 28px; }
-    .card { max-width: 560px; margin: 0 auto; background: #262c3a; border: 1px solid #3a4150; border-radius: 12px; padding: 24px 28px; }
-    h1 { font-size: 18px; margin: 0 0 4px; }
-    .sub { color: #9fb3c8; margin: 0 0 20px; font-size: 13px; }
-    .row { display: flex; align-items: center; justify-content: space-between; gap: 16px; padding: 14px 0; border-top: 1px solid #333b4a; }
+    :root { color-scheme: dark; }
+    body { font: 15px/1.6 -apple-system, "Segoe UI", system-ui, sans-serif; background: var(--vibe-bg); color: var(--vibe-text); margin: 0; padding: 28px; }
+    .card { max-width: 560px; margin: 0 auto; background: var(--vibe-surface); border: 1px solid var(--vibe-border); border-radius: 12px; padding: 24px 28px; }
+    h1 { display: flex; align-items: center; gap: 10px; font-size: 18px; margin: 0 0 4px; }
+    .sub { color: var(--vibe-muted); margin: 0 0 20px; font-size: 13px; }
+    .row { display: flex; align-items: center; justify-content: space-between; gap: 16px; padding: 14px 0; border-top: 1px solid var(--vibe-border); }
     .row:first-of-type { border-top: 0; }
     label { font-weight: 600; }
-    .hint { color: #9fb3c8; font-size: 12px; margin-top: 4px; }
-    select, button { background: #2b3140; color: #e6e6e6; border: 1px solid #3a4150; border-radius: 8px; padding: 6px 10px; font: inherit; }
+    .hint { color: var(--vibe-muted); font-size: 12px; margin-top: 4px; }
+    select, button { background: var(--vibe-surface-2); color: var(--vibe-text); border: 1px solid var(--vibe-border); border-radius: 8px; padding: 6px 10px; font: inherit; }
     button { cursor: pointer; flex-shrink: 0; }
-    button:hover { background: #333b4a; border-color: #9fb3c8; }
-    button:focus-visible { outline: 2px solid #9fb3c8; outline-offset: 2px; }
+    button:hover { background: var(--vibe-border); border-color: var(--vibe-muted); }
+    button:focus-visible { outline: 2px solid var(--vibe-muted); outline-offset: 2px; }
     input[type="checkbox"] { width: 18px; height: 18px; }
     .saved { color: #5fd38b; font-size: 13px; height: 18px; margin-top: 6px; }
     .row.stack { display: block; }
     @media (max-width: 600px) { body { padding: 12px; } .card { padding: 16px; } .row { flex-wrap: wrap; } }
     .site-list { list-style: none; margin: 10px 0 0; padding: 0; }
-    .site-list li { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 6px 10px; margin-top: 6px; background: #2b3140; border: 1px solid #3a4150; border-radius: 8px; }
+    .site-list li { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 6px 10px; margin-top: 6px; background: var(--vibe-surface-2); border: 1px solid var(--vibe-border); border-radius: 8px; }
     .site-list li span { overflow-wrap: anywhere; }
-    .site-list li.empty { background: none; border: 0; padding: 0; color: #9fb3c8; font-size: 13px; }
+    .site-list li.empty { background: none; border: 0; padding: 0; color: var(--vibe-muted); font-size: 13px; }
   </style>
 </head>
 <body>
   <div class="card">
-    <h1>📖 氛圍閱讀設定</h1>
+    <h1><img src="icons/icon48.png" alt="" width="28" height="28">氛圍閱讀設定</h1>
     <p class="sub">網頁翻譯相關設定（變更即時生效，無需重新整理）</p>
+
+    <div class="row">
+      <div><label for="readingTheme">閱讀配色</label><div class="hint">工具列、圖卡與浮動面板同步套用，所有配色都保留暗色底。</div></div>
+      <select id="readingTheme" data-vibe-theme-select><option value="charcoal">炭黑</option><option value="orange">橘黑</option><option value="pink">粉黑</option></select>
+    </div>
 
     <div class="row">
       <div>
