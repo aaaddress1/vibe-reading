@@ -35,6 +35,7 @@ function fixture(count = 5) {
     pages[i] = pg;
   }
   const ctx = { pdfDoc: { numPages: count }, pageWraps: pages, zoom: 1, baseScale: 1, renderScale: 1,
+    pdfOverlay: null,
     window: { devicePixelRatio: 1 }, console,
     requestAnimationFrame: cb => { frames.push(cb); return frames.length; },
     setTimeout: cb => { timers.set(++timerId, cb); return timerId; }, clearTimeout: id => timers.delete(id),
@@ -76,6 +77,15 @@ test('zero wheel delta and ordinary scrolling do not zoom', () => {
   f.events.wheel({ ctrlKey: false, deltaY: 50 });
   assert.equal(f.ctx.zoom, 1);
   assert.equal(f.frames.length, 0);
+});
+
+test('rotated PDF text layers preserve rotation when zooming without extending page bounds', () => {
+  const f = fixture();
+  f.pages[1].viewport.rotation = 90;
+  f.ctx.applyDisplayScale(2);
+  assert.equal(f.pages[1].textLayer.style.transform, 'scale(2) rotate(90deg) translateY(-100%)');
+  assert.equal(f.ctx.textLayerTransform(1, 180), 'scale(1) rotate(180deg) translate(-100%, -100%)');
+  assert.equal(f.ctx.textLayerTransform(1, 270), 'scale(1) rotate(270deg) translateX(-100%)');
 });
 
 test('zoom at a scale boundary does no extra layout work', () => {

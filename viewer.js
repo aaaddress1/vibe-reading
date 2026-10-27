@@ -38,6 +38,10 @@ const els = {
   targetLang:    document.getElementById('targetLang'),
   settingsBtn:   document.getElementById('settingsBtn'),
   pdfDarkBtn:    document.getElementById('pdfDarkBtn'),
+  pdfLayoutBtn:  document.getElementById('pdfLayoutBtn'),
+  transPane:     document.getElementById('transPane'),
+  translatedPdfPane: document.getElementById('translatedPdfPane'),
+  translatedPdfInner: document.getElementById('translatedPdfInner'),
   aiBadge:       document.getElementById('aiBadge'),
   translateBtn:  document.getElementById('translateBtn'),
   stopBtn:       document.getElementById('stopBtn'),
@@ -107,6 +111,9 @@ let summaryGeneration = 0;  // invalidates work when the target language changes
 let summaryObj    = null;   // generated AI summary, reused as Q&A context
 let segEls        = [];     // paragraph index -> right-pane segment element
 let welcomeText   = null;
+let pdfOverlay    = null;
+let readingMode   = 'paragraphs';
+let paragraphPaneFlex = '';
 
 const WELCOME_TEXT = {
   'zh-TW': {
@@ -249,6 +256,7 @@ document.addEventListener('DOMContentLoaded', async () => {
   setupReverseLocate();
   setupZoom();
   setupKeyboardScroll();
+  await setupReadingMode();
 
   els.translateBtn.addEventListener('click', () => startTranslation(true));
   els.stopBtn.addEventListener('click', () => {
@@ -258,6 +266,9 @@ document.addEventListener('DOMContentLoaded', async () => {
   });
   els.targetLang.addEventListener('change', async () => {
     chrome.storage.local.set({ targetLang: els.targetLang.value });
+    abortCtrl?.abort();
+    pdfOverlay?.clearTranslations();
+    if (paragraphs.length) setStatus('目標語言已變更，請點擊「翻譯」重新翻譯。');
     resetSummary();
     await checkAI();
     if (paragraphs.length) generateSummary();
@@ -575,6 +586,62 @@ function applyTransFont(px) {
   // AI summary card (#summary, a sibling of #results) inherit it
   document.documentElement.style.setProperty('--trans-font', transFont + 'px');
   chrome.storage.local.set({ transFont });
+  pdfOverlay?.setFontRatio(transFont / FONT_DEFAULT);
+}
+
+// ─── Paragraph cards / translated PDF layout ──────────────────────────────────
+async function setupReadingMode() {
+  pdfOverlay = new window.VibePdfOverlay.Reader({
+    pane: els.translatedPdfPane, inner: els.translatedPdfInner,
+    sourcePane: els.pdfPane, sourcePages: () => pageWraps,
+    onLocate: index => { if (segEls[index]) locate(index, segEls[index]); },
+    onEdit: (index, text) => { if (segEls[index]) fillTranslation(segEls[index], text); },
+    onZoom: e => {
+      if (!e.deltaY) return;
+      const unit = e.deltaMode === 1 ? 16 : e.deltaMode === 2 ? els.translatedPdfPane.clientHeight : 1;
+      const delta = Math.max(-100, Math.min(100, e.deltaY * unit));
+      const left = els.pdfPane.getBoundingClientRect(), right = els.translatedPdfPane.getBoundingClientRect();
+      setZoom(zoom * Math.exp(-delta * 0.002), left.top + e.clientY - right.top,
+        left.left + e.clientX - right.left);
+    },
+  });
+  pdfOverlay.setFontRatio(transFont / FONT_DEFAULT);
+  els.pdfLayoutBtn.disabled = true;
+  els.pdfLayoutBtn.addEventListener('click', () => {
+    setReadingMode(readingMode === 'layout' ? 'paragraphs' : 'layout');
+  });
+  const saved = await storageGet('pdfReadingMode');
+  setReadingMode(saved.pdfReadingMode === 'layout' ? 'layout' : 'paragraphs', false);
+}
+
+function setReadingMode(mode, persist = true) {
+  const wasAtTop = els.pdfPane.scrollTop < 1;
+  const anchor = window.VibePdfOverlay.captureAnchor(els.pdfPane, pageWraps);
+  const enabled = mode === 'layout';
+  if (enabled && readingMode !== 'layout') paragraphPaneFlex = els.pdfPane.style.flex;
+  readingMode = enabled ? 'layout' : 'paragraphs';
+  document.body.classList.toggle('pdf-layout-mode', enabled);
+  els.transPane.hidden = enabled;
+  els.translatedPdfPane.hidden = !enabled;
+  els.pdfPane.style.flex = enabled ? '0 0 calc(50% - 3px)' : paragraphPaneFlex;
+  els.pdfLayoutBtn.setAttribute('aria-pressed', String(enabled));
+  els.pdfLayoutBtn.title = enabled ? '切回段落對照（含 AI 摘要與譯文編輯）' : '切換為原始 PDF／翻譯 PDF 版面對照';
+  pdfOverlay?.setEnabled(enabled);
+  if (pdfDoc && pageWraps[1]) {
+    const width = enabled ? Math.min(els.pdfPane.clientWidth, els.translatedPdfPane.clientWidth) : els.pdfPane.clientWidth;
+    baseScale = Math.max(enabled ? 0.1 : 0.5, Math.min(2.5, (width - 48) / pageWraps[1].w1));
+    renderScale = baseScale * zoom;
+    cancelSharpen();
+    applyDisplayScale(renderScale);
+    if (wasAtTop) els.pdfPane.scrollTop = 0;
+    else if (anchor) {
+      const r = pageWraps[anchor.page].wrap.getBoundingClientRect();
+      els.pdfPane.scrollTop += r.top + anchor.fraction * r.height - els.pdfPane.getBoundingClientRect().top - 8;
+    }
+    pdfOverlay?.syncFrom(els.pdfPane);
+    scheduleSharpen();
+  }
+  if (persist) chrome.storage.local.set({ pdfReadingMode: readingMode });
 }
 
 // ─── PDF dark mode (persisted) ──────────────────────────────────────────────────
@@ -683,7 +750,7 @@ async function loadAndRenderPdf(loadBuffer) {
 
   pdfDoc = await PDFJS.getDocument({ data: buf }).promise;
 
-  // Tab title = [氛圍閱讀] <PDF metadata title, else filename>
+  // Tab title = PDF metadata title, else filename.
   try {
     const meta = await pdfDoc.getMetadata();
     const docTitle = meta?.info?.Title?.trim();
@@ -694,7 +761,7 @@ async function loadAndRenderPdf(loadBuffer) {
   const firstPage = await pdfDoc.getPage(1);
   const base = firstPage.getViewport({ scale: 1 });
   const paneW = els.pdfPane.clientWidth - 48;
-  baseScale = Math.max(0.5, Math.min(2.5, paneW / base.width));
+  baseScale = Math.max(readingMode === 'layout' ? 0.1 : 0.5, Math.min(2.5, paneW / base.width));
   zoom = 1;
   renderScale = baseScale * zoom;
 
@@ -703,6 +770,10 @@ async function loadAndRenderPdf(loadBuffer) {
   try { await renderPages(true); } finally { initialRenderPending = false; }
   scheduleSharpen();
   paragraphs = refineParagraphs(paragraphs);
+  pdfOverlay?.setDocument(pageWraps, paragraphs);
+  pdfOverlay?.setScale(renderScale);
+  pdfOverlay?.syncFrom(els.pdfPane);
+  els.pdfLayoutBtn.disabled = false;
   updateZoomLabel();
 }
 
@@ -751,12 +822,14 @@ async function renderPages(computeParagraphs) {
     wrap.appendChild(textLayer);
     try {
       await PDFJS.renderTextLayer({ textContentSource: content, container: textLayer, viewport, textDivs: [] }).promise;
+      textLayer.style.transform = textLayerTransform(1, viewport.rotation);
     } catch (e) {
       console.warn('[PDF翻譯] 文字層渲染失敗（不影響翻譯）：', e);
     }
 
     pageWraps[p] = {
       page, wrap, canvas, baseCanvas: canvas, textLayer, viewport,
+      rasterRevision: 0,
       textScale: displayScale,
       w1: viewport.width  / displayScale,   // intrinsic (scale-1) dimensions
       h1: viewport.height / displayScale,
@@ -767,7 +840,7 @@ async function renderPages(computeParagraphs) {
     if (computeParagraphs) {
       const regions = await detectLayout(canvas, renderVp, p, total);
       for (const para of extractParagraphs(content.items, regions)) {
-        paragraphs.push({ page: p, text: para.text, rect: para.rect, kind: para.kind });
+        paragraphs.push({ page: p, text: para.text, rect: para.rect, kind: para.kind, fontSize: para.fontSize });
       }
     }
   }
@@ -803,6 +876,13 @@ let activeRenderTask = null;
 let initialRenderPending = false;
 const MAX_CANVAS_PIXELS = 8 * 1024 * 1024;
 const MAX_CANVAS_EDGE = 8192;
+
+function textLayerTransform(ratio, rotation) {
+  const rotate = { 90: ' rotate(90deg) translateY(-100%)',
+    180: ' rotate(180deg) translate(-100%, -100%)',
+    270: ' rotate(270deg) translateX(-100%)' }[rotation] || '';
+  return `scale(${ratio})${rotate}`;
+}
 
 function updateZoomLabel() {
   if (els.zoomLabel) els.zoomLabel.textContent = Math.round(zoom * 100) + '%';
@@ -877,6 +957,8 @@ function showBaseCanvas(pg) {
   pg.baseCanvas.style.height = pg.h1 * renderScale + 'px';
   old.replaceWith(pg.baseCanvas);
   pg.canvas = pg.baseCanvas;
+  pg.rasterRevision = (pg.rasterRevision || 0) + 1;
+  pdfOverlay?.refreshPage(pg.wrap.dataset.page);
   old.width = old.height = 0; // release the offscreen high-resolution bitmap
 }
 
@@ -923,6 +1005,8 @@ async function sharpenPages() {
       const old = pg.canvas;
       old.replaceWith(canvas);
       pg.canvas = canvas;
+      pg.rasterRevision = (pg.rasterRevision || 0) + 1;
+      pdfOverlay?.refreshPage(pg.wrap.dataset.page);
       if (old !== pg.baseCanvas) old.width = old.height = 0;
     } catch (e) {
       if (e.name !== 'RenderingCancelledException') throw e;
@@ -943,12 +1027,13 @@ function applyDisplayScale(scale) {
     pg.canvas.style.height = h + 'px';
     // Transform the existing text layer as a unit. Updating --scale-factor
     // reflows thousands of spans on every wheel event in a long paper.
-    pg.textLayer.style.transform = 'scale(' + scale / pg.textScale + ')';
+    pg.textLayer.style.transform = textLayerTransform(scale / pg.textScale, pg.viewport.rotation);
     pg.viewport = pg.page.getViewport({ scale });
     for (const hl of pg.wrap.querySelectorAll('.hl')) {
       positionPdfHighlight(hl, JSON.parse(hl.dataset.pdfRect), pg.viewport);
     }
   }
+  pdfOverlay?.setScale(scale);
 }
 
 function setupZoom() {
@@ -1076,7 +1161,8 @@ function extractParagraphs(items, regions) {
     // are justified spacing, not a column break.
     const columnWide = (box.x1 - box.x0) < (textMaxX - textMinX) * 0.6;
     const lines = buildVisualLines(boxItems, !columnWide).sort(lineCompare);
-    const paras = paragraphsFromLines(lines, { references: box.label === 'reference' })
+    const paras = paragraphsFromLines(lines, { references: box.label === 'reference',
+      keepShort: ['doc_title', 'paragraph_title', 'figure_title', 'table_title', 'chart_title'].includes(box.label) })
       .map(p => ({ ...p, kind: box.label }));
     if (paras.length) units.push({ x0: box.x0, y0: box.y0, x1: box.x1, y1: box.y1, paras });
   }
@@ -1119,7 +1205,7 @@ function geometricParagraphs(its, kind) {
 
   const out = [];
   for (const block of readingBlocksFromLines(lines)) out.push(...paragraphsFromLines(block));
-  return out.map(p => markCaption({ ...p, kind }));
+  return out.map(p => markCaption({ ...p, kind: p.isHeading ? 'paragraph_title' : kind }));
 }
 
 // Reading order for layout units ({ x0, y0, x1, y1 } in PDF coordinates, y up):
@@ -1433,8 +1519,9 @@ function paragraphsFromLines(lines, opts = {}) {
       x0 = Math.min(x0, x); y0 = Math.min(y0, y);
       x1 = Math.max(x1, x + w); y1 = Math.max(y1, y + h);
     }
-    return { text, rect: { x0, y0, x1, y1 } };
-  }).filter(p => p.text.length > 20);
+    const fontSize = median(grp.map(l => l.fontH)) || 10;
+    return { text, rect: { x0, y0, x1, y1 }, fontSize, isHeading: fontSize >= bodyFontH * 1.15 };
+  }).filter(p => p.text.length > 20 || ((opts.keepShort || p.isHeading) && /\p{L}/u.test(p.text)));
 }
 
 // Document-level cleanup over all pages' paragraphs ({ page, text, rect }):
@@ -1493,10 +1580,10 @@ function refineParagraphs(paras) {
       /^[a-z(]/.test(p.text);
     if (continues) {
       prev.text = joinLines([prev.text, p.text]);
-      prev.parts.push({ page: p.page, rect: p.rect });
+      prev.parts.push({ page: p.page, rect: p.rect, text: p.text, fontSize: p.fontSize });
     } else {
-      out.push({ page: p.page, text: p.text, rect: p.rect, kind,
-                 parts: [{ page: p.page, rect: p.rect }] });
+      out.push({ page: p.page, text: p.text, rect: p.rect, kind, fontSize: p.fontSize,
+                 parts: [{ page: p.page, rect: p.rect, text: p.text, fontSize: p.fontSize }] });
     }
   }
   return out;
@@ -1513,6 +1600,9 @@ async function startTranslation(isManual) {
   els.results.innerHTML = '';
 
   if (!paragraphs.length) { showError('沒有可翻譯的文字（可能是掃描版 PDF）。'); return; }
+  segEls = [];
+  pdfOverlay?.clearTranslations();
+  const targetLang = els.targetLang.value;
 
   abortCtrl = new AbortController();
   const { signal } = abortCtrl;
@@ -1525,6 +1615,7 @@ async function startTranslation(isManual) {
       isManual,
       onStatus: setStatus, onProgress: setProgress, onIndeterminate: setIndeterminate,
     });
+    if (signal.aborted) return;
 
     const total = paragraphs.length;
     const shells = paragraphs.map((p, i) => appendSegment(p, i));
@@ -1546,9 +1637,13 @@ async function startTranslation(isManual) {
         if (i >= total) return;
         try {
           const translated = await doTranslate(translatorObj, paragraphs[i].text);
+          if (signal.aborted) return;
           fillTranslation(shells[i], translated);
+          pdfOverlay?.updateTranslation(i, translated, false, targetLang);
         } catch (e) {
+          if (signal.aborted) return;
           fillTranslation(shells[i], `[翻譯失敗: ${e.message}]`, true);
+          pdfOverlay?.updateTranslation(i, '', true, targetLang);
         }
         done++;
         setProgress(done / total, `${done} / ${total}`);
@@ -1792,6 +1887,9 @@ function enterEditMode(transEl) {
     const text = save ? ta.value : original;
     ta.remove();
     transEl.textContent = text;
+    if (save) transEl.classList.remove('err');
+    const index = Number(transEl.closest('.segment').dataset.idx);
+    pdfOverlay?.updateTranslation(index, text, transEl.classList.contains('err'), els.targetLang.value);
   };
   ta.addEventListener('blur', () => finish(true));
   ta.addEventListener('keydown', (e) => {
@@ -1808,7 +1906,7 @@ function fillTranslation(el, text, isError = false) {
   const t = el.querySelector('.seg-trans');
   t.textContent = text;
   t.classList.remove('loading');
-  if (isError) t.classList.add('err');
+  t.classList.toggle('err', isError);
 }
 
 // Draw highlight boxes over every piece of a paragraph (a paragraph re-joined
@@ -1900,7 +1998,8 @@ function reverseLocate(idx, para) {
   seg.classList.remove('seg-flash');
   void seg.offsetWidth;            // restart CSS animation
   seg.classList.add('seg-flash');
-  seg.scrollIntoView({ behavior: 'smooth', block: 'center' });
+  if (readingMode === 'layout') pdfOverlay?.locate(idx);
+  else seg.scrollIntoView({ behavior: 'smooth', block: 'center' });
 
   // also draw the highlight box(es) on the PDF for visual confirmation
   highlightParagraph(para);

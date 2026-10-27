@@ -39,6 +39,10 @@
       <label class="label" for="targetLang">翻譯成</label>
       <select id="targetLang" class="select"></select>
       <select id="readingTheme" class="select theme-select" data-vibe-theme-select aria-label="閱讀配色" title="閱讀配色"><option value="charcoal">炭黑</option><option value="orange">橘黑</option><option value="pink">粉黑</option></select>
+      <button id="pdfLayoutBtn" class="layout-mode-btn" type="button" title="切換為原始 PDF／翻譯 PDF 版面對照" aria-label="PDF 版面對照" aria-pressed="false">
+        <svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.4" aria-hidden="true"><rect x="2" y="3" width="16" height="14" rx="2"/><path d="M10 3v14M5 7h2M5 10h2M13 7h2M13 10h2M13 13h2"/></svg>
+        <span>版面對照</span>
+      </button>
       <button id="pdfDarkBtn" class="icon-btn" title="關閉 PDF 暗黑模式" aria-pressed="true">☀️</button>
       <button id="settingsBtn" class="icon-btn" title="設定">⚙</button>
       <span class="font-ctrl" title="調整右側翻譯字體大小">
@@ -61,6 +65,7 @@
 
   <main id="split">
     <section id="pdfPane" class="pdf-pane">
+      <div class="pdf-layout-caption">原始 PDF</div>
       <div id="pdfInner" class="pdf-inner"></div>
     </section>
 
@@ -83,6 +88,10 @@
           • 讀完整份論文後，頂部會出現 <b>AI 摘要</b></div>
       </div>
     </aside>
+    <section id="translatedPdfPane" class="translated-pdf-pane" aria-label="翻譯 PDF" hidden>
+      <div class="pdf-layout-caption">翻譯 PDF</div>
+      <div id="translatedPdfInner" class="pdf-inner"></div>
+    </section>
   </main>
 
   <!-- Floating "ask AI" button shown on text selection -->
@@ -176,6 +185,7 @@
   <script src="lib/ort/ort.wasm.min.js"></script>
   <script src="layout.js"></script>
   <script src="translate-core.js"></script>
+  <script src="pdf-overlay.js"></script>
   <script src="viewer.js"></script>
 </body>
 </html>

@@ -217,6 +217,7 @@ body {
 
 .page-wrap {
   position: relative;
+  overflow: hidden;
   background: #fff;                 /* page stays white for readability */
   box-shadow: 0 2px 12px rgba(0,0,0,0.6);
   flex-shrink: 0;
@@ -232,6 +233,53 @@ body {
 body.pdf-dark .page-wrap { background: var(--page-dark); box-shadow: 0 2px 12px rgba(0,0,0,0.8); }
 body.pdf-dark .page-wrap canvas { filter: invert(0.9) hue-rotate(180deg); }
 .icon-btn[aria-pressed="true"] { background: var(--control-hover); border-color: var(--accent); color: var(--text); }
+
+/* PDF layout comparison: original bitmap + selectable translated blocks. */
+.layout-mode-btn {
+  height: 28px; padding: 0 7px; display: inline-flex; align-items: center; gap: 4px;
+  flex-shrink: 0; border: 1px solid var(--border); border-radius: 5px;
+  color: var(--muted); background: var(--surface-2); font: inherit; font-size: 11px; cursor: pointer;
+}
+.layout-mode-btn svg { width: 17px; height: 17px; }
+.layout-mode-btn:hover, .layout-mode-btn[aria-pressed="true"] {
+  color: var(--accent); border-color: var(--accent); background: var(--accent-2);
+}
+.layout-mode-btn:disabled { opacity: .45; cursor: not-allowed; }
+.trans-pane[hidden], .translated-pdf-pane[hidden] { display: none; }
+.pdf-layout-caption { display: none; }
+.pdf-layout-mode .pdf-layout-caption {
+  display: block; color: var(--muted); font-size: 10px; letter-spacing: .06em;
+  padding: 0 0 8px; line-height: 16px; align-self: flex-start; flex-shrink: 0;
+}
+.translated-pdf-pane {
+  flex: 1; min-width: 0; overflow: auto; overflow-anchor: none; padding: 16px;
+  background: var(--canvas-bg); display: flex; flex-direction: column; align-items: safe center;
+}
+.translated-page { overflow: hidden; }
+.translated-page > canvas { width: 100%; height: 100%; }
+.pdf-overlay-layer { position: absolute; top: 0; left: 0; transform-origin: 0 0; pointer-events: none; }
+.pdf-trans-block {
+  position: absolute; padding: 0 1px; line-height: 1.25; white-space: pre-wrap;
+  overflow: auto; overflow-wrap: anywhere; scrollbar-width: none; overscroll-behavior: contain;
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Noto Sans TC', 'PingFang TC', sans-serif;
+  font-weight: 400; pointer-events: auto; cursor: text; border: 0;
+}
+.pdf-trans-block.is-heading { font-weight: 700; }
+.pdf-trans-block.is-title { text-align: center; }
+.pdf-trans-block::selection { background: var(--vibe-selection); }
+.pdf-trans-block:hover, .pdf-trans-block:focus-visible, .pdf-trans-block.is-active, .pdf-trans-block.is-editing {
+  outline: 1px solid #b78a28; outline-offset: 0;
+}
+.pdf-trans-block.is-overflowing:hover, .pdf-trans-block.is-overflowing:focus { scrollbar-width: thin; }
+body.pdf-dark .pdf-overlay-layer { filter: invert(0.9) hue-rotate(180deg); }
+.pdf-trans-block.is-editing { scrollbar-width: thin; user-select: text; }
+@media (max-width: 1100px) { .layout-mode-btn span { display: none; } }
+@media (max-width: 760px) {
+  body.pdf-layout-mode #split { flex-direction: row; }
+  body.pdf-layout-mode .pdf-pane { flex: 0 0 calc(50% - 3px) !important; padding: 8px; min-width: 0; }
+  body.pdf-layout-mode .divider { display: block; }
+  .translated-pdf-pane { padding: 8px; }
+}
 
 /* highlight box drawn over the PDF page */
 .hl {
@@ -347,10 +395,11 @@ body.pdf-dark .page-wrap canvas { filter: invert(0.9) hue-rotate(180deg); }
 }
 .float-btn {
   padding: 5px 11px; border: none; border-radius: 14px;
-  background: var(--vibe-action-bg, var(--accent-2)); color: var(--vibe-action-text, #fff); font-size: 12px; font-weight: 600;
+  /* Selection actions keep their original identity across reading palettes. */
+  background: #4285f4; color: #fff; font-size: 12px; font-weight: 600;
   cursor: pointer; white-space: nowrap;
 }
-.float-btn:hover { background: var(--vibe-action-hover, var(--control-hover)); }
+.float-btn:hover { background: #5a95f5; }
 
 /* ── Ask-Nano modal ────────────────────────────────────────── */
 /* Floating, non-blocking panel — no full-screen backdrop, so the rest of the

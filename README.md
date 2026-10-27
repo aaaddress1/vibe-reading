@@ -1,6 +1,6 @@
-# <img src="icons/icon48.png" width="40" height="40" alt=""> 氛圍閱讀 2.0 · Vibe Reading
+# <img src="icons/icon48.png" width="40" height="40" alt=""> 氛圍閱讀 2.1 · Vibe Reading
 
-<img src="store/reading-illustration.png" alt="氛圍閱讀 2.0：紅黃配色的作者閱讀形象" width="320">
+<img src="store/reading-illustration.png" alt="氛圍閱讀：紅黃配色的作者閱讀形象" width="320">
 
 > 向「沉浸式翻譯」致敬 — 但**完全離線、零 API Key、零雲端費用**。
 > 基於 Chrome／Edge 內建 AI（Translator API / Gemini Nano），在地端把整份 PDF 論文與**任意網頁**逐段翻成你的語言。
@@ -12,7 +12,23 @@
 [![Chrome Web Store](https://img.shields.io/badge/Chrome%20Web%20Store-%E6%B0%9B%E5%9C%8D%E9%96%B1%E8%AE%80%20Vibe%20Reading-4285F4?logo=googlechrome&logoColor=white)](https://chromewebstore.google.com/detail/%E6%B0%9B%E5%9C%8D%E9%96%B1%E8%AE%80-vibe-reading/aaiiajcclefdjeegondambmholpnkjme)
 [![Microsoft Edge Add-ons](https://img.shields.io/badge/Edge%20Add--ons-%E6%B0%9B%E5%9C%8D%E9%96%B1%E8%AE%80%20Vibe%20Reading-0078D7?logo=microsoftedge&logoColor=white)](https://microsoftedge.microsoft.com/addons/detail/%E6%B0%9B%E5%9C%8D%E9%96%B1%E8%AE%80-vibe-reading/dapinmajdflnihlikbpdjiaaodcefekl)
 
-![氛圍閱讀 Vibe Reading 介面預覽](preview.png)
+### 2.1 雙頁翻譯對照
+
+左邊原始 PDF、右邊在原位置顯示譯文，保留圖表與版面；左右捲動及縮放同步。
+
+![氛圍閱讀 2.1：原始 PDF 與翻譯 PDF 雙頁對照](store/pdf-layout-v2.1.png)
+
+雙擊右側譯文即可原位修改，失去焦點就儲存，並同步到原本的段落圖卡。
+
+![氛圍閱讀 2.1：雙擊原位編輯翻譯文字](store/pdf-inline-edit-v2.1.png)
+
+*以上截圖使用示範 PDF 與預置譯文，展示版面對照及編輯操作。*
+
+[下載 2.1.0 安裝包與素材](https://github.com/aaaddress1/vibe-reading/releases/tag/v2.1.0)。Chrome／Edge 商城需另外提交審核。
+
+### 段落對照與更多閱讀功能
+
+![氛圍閱讀 Vibe Reading 段落對照介面（先前版本）](preview.png)
 
 ![在論文中反白文字，直接問 Gemini Nano](ask-ai.png)
 
@@ -27,6 +43,19 @@
 > 🎥 [觀看完整高畫質影片（demo.mp4）](https://github.com/aaaddress1/vibe-reading/raw/main/demo.mp4)
 
 ---
+
+## 2.1 更新（2026-10-27）：PDF 版面對照
+
+右上角「版面對照」按鈕可在兩種閱讀方式間切換，並記住最後一次選擇，之後開啟其他 PDF 也會沿用：
+
+- **段落對照**：原本的翻譯圖卡、AI 摘要與譯文編輯。
+- **版面對照**：左邊原始 PDF，右邊在相同段落座標覆蓋譯文；保留圖表與頁面排版，左右捲動和縮放同步。
+
+譯文會隨翻譯進度逐段出現，切換模式共用同一份結果。跨欄／跨頁段落依原文長度分配譯文到各區塊；較長譯文會縮小字級，仍放不下時可在區塊內捲動，不覆蓋其他內容。尚未翻譯或翻譯失敗的區塊維持原文。此功能需要 PDF 本身有可擷取的文字；掃描影像尚未提供 OCR。
+
+**手動修正譯文**：雙擊翻譯 PDF 的文字區塊，直接在原位置編輯；失去焦點即儲存，也可用 Ctrl／⌘＋Enter 完成，Esc 放棄修改。修改會同步到段落圖卡；切換閱讀模式仍會保留。跨頁段落可分別修改各區塊，其他區塊不會被重新分配。與原本的圖卡編輯相同，修改保留在目前開啟的文件，重新翻譯會取代手動修改。
+
+「問 AI／翻譯」選取按鈕保留原本的藍底白字，不受閱讀主題色票影響；旋轉頁面的文字層對齊及短章節標題辨識也一併改善。
 
 ## 2.0 更新（2026-10-22）
 
@@ -238,9 +267,13 @@ MIT License
 
 ---
 
-# Vibe Reading 2.0 (English)
+# Vibe Reading 2.1 (English)
 
-Version 2.0 introduces a simplified reading mascot, three dark accent palettes, a compact toolbar with automatically hidden completion status, frame-batched PDF zoom with cancellable nearby-page rendering, and summary-language validation with translation fallback. [Download v2.0.0](https://github.com/aaaddress1/vibe-reading/releases/tag/v2.0.0).
+Version 2.1 adds side-by-side original/translated PDF views with layout-preserving text overlays, synchronized scrolling/zoom, and a remembered reading-mode preference. Double-click translated text to edit it in place; leaving the block saves changes and updates paragraph cards. [Download v2.1.0](https://github.com/aaaddress1/vibe-reading/releases/tag/v2.1.0).
+
+![Original and translated PDFs side by side](store/pdf-layout-v2.1.png)
+
+*Screenshots use a demonstration PDF and preset translations to illustrate layout and editing.*
 
 > A tribute to "Immersive Translate" — but **fully offline, no API key, no cloud bills**.
 > Translates entire PDF papers and any web page paragraph-by-paragraph using Chrome's / Edge's built-in on-device AI (Translator API / Gemini Nano).
@@ -248,6 +281,8 @@ Version 2.0 introduces a simplified reading mascot, three dark accent palettes, 
 [![Buy Me a Coffee](https://img.buymeacoffee.com/button-api/?text=Buy%20me%20a%20coffee&slug=aaaddress1&button_colour=FFDD00&font_colour=000000&font_family=Cookie&outline_colour=000000&coffee_colour=ffffff)](https://www.buymeacoffee.com/aaaddress1)
 
 ## Features
+
+- **PDF layout comparison**: switch between paragraph cards and side-by-side original/translated PDF views. Translated text overlays its original regions, figures remain visible, scrolling/zoom stay synchronized, and the last chosen mode is remembered for subsequent PDFs. Double-click a translated block to edit it directly; blur or Ctrl/⌘+Enter saves, Escape cancels. Requires extractable PDF text; OCR and PDF export are not included.
 
 - **Paragraph translation** with original paper on the left, translations on the right
 - **Two-way locate**: click a translation → paper scrolls & highlights the source; click source → translation highlights
@@ -372,8 +407,14 @@ MIT
 
 ## 開發驗證 / Development checks
 
-以 Node.js 內建測試工具驗證摘要語言、縮放錨點、取消重繪與畫素上限：
+以 Node.js 內建測試工具驗證摘要語言、縮放錨點、取消重繪、畫素上限、PDF 譯文區塊、閱讀模式記憶與同步捲動：
 
 ```sh
-node --test tests/viewer-summary.test.cjs tests/viewer-zoom.test.cjs
+node --test tests/viewer-summary.test.cjs tests/viewer-zoom.test.cjs tests/pdf-overlay.test.cjs
+```
+
+建立商城安裝包、品牌素材包與 SHA-256 校驗碼（使用 `manifest.json` 的版本號）：
+
+```sh
+python scripts/package-release.py
 ```

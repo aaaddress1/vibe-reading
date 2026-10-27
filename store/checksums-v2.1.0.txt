@@ -1,0 +1,2 @@
+3825fdbc46b81730ee594b92bbd30fc3eefc35f56c8b44e7c51ff9e498a1f28a  vibe-reading-store-v2.1.0.zip
+322f1a71ebf7598d8f2e821fa8b298eba1c0ce020ccc111e98a42816b81eba91  vibe-reading-brand-v2.1.0.zip
