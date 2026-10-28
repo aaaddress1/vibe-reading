@@ -1,0 +1,42 @@
+{
+  "version": "2.1.0",
+  "screenshots": {
+    "zh-TW": [
+      "zh-TW/01-layout-1280x800.png",
+      "zh-TW/02-paragraphs-1280x800.png",
+      "zh-TW/03-summary-ask-1280x800.png",
+      "zh-TW/04-web-1280x800.png",
+      "zh-TW/05-themes-1280x800.png",
+      "zh-TW/06-mobile-edge-1280x800.png"
+    ],
+    "en": [
+      "en/01-layout-1280x800.png",
+      "en/02-paragraphs-1280x800.png",
+      "en/03-summary-ask-1280x800.png",
+      "en/04-web-1280x800.png",
+      "en/05-themes-1280x800.png",
+      "en/06-mobile-edge-1280x800.png"
+    ]
+  },
+  "chromeOrder": [
+    "01-layout",
+    "02-paragraphs",
+    "03-summary-ask",
+    "04-web",
+    "05-themes"
+  ],
+  "edgeOrder": [
+    "01-layout",
+    "02-paragraphs",
+    "03-summary-ask",
+    "04-web",
+    "05-themes",
+    "06-mobile-edge"
+  ],
+  "screenSize": [
+    1280,
+    800
+  ],
+  "demoContent": true,
+  "mobileCapture": "responsive browser preview, not Android device capture"
+}

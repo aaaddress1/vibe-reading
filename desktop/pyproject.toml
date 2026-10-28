@@ -1,0 +1,31 @@
+[build-system]
+requires = ["setuptools>=75"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "vibe-reading-desktop"
+version = "1.0.0"
+description = "An independent, on-device Windows quick translator"
+requires-python = ">=3.11"
+dependencies = [
+  "PySide6-Essentials>=6.8,<7",
+  "onnxruntime>=1.20,<2",
+  "tokenizers>=0.21,<1",
+  "numpy>=1.26,<3",
+  "opencc-python-reimplemented>=0.1.7,<1",
+  "langid>=1.1.6,<2",
+  "ctranslate2>=4.8.4,<5",
+]
+
+[project.gui-scripts]
+vibe-reading = "vibe_desktop.app:main"
+
+[project.optional-dependencies]
+build = ["pyinstaller>=6.11,<7", "nuitka>=4.3,<5", "ordered-set>=4,<5", "zstandard>=0.23,<1", "imageio>=2.36,<3"]
+
+[tool.setuptools.packages.find]
+where = ["."]
+include = ["vibe_desktop*"]
+
+[tool.setuptools.package-data]
+vibe_desktop = ["assets/*.png", "assets/*.json"]

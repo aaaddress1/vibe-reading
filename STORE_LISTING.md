@@ -19,12 +19,10 @@ https://github.com/aaaddress1/vibe-reading
 【PDF 翻譯】
 • 雙頁版面對照（2.1 新增）：左側原始 PDF、右側在對應段落位置覆蓋譯文，保留圖表和頁面排版，左右捲動與縮放同步
 • 記住閱讀模式：段落圖卡與雙頁版面對照一鍵切換，之後開啟其他 PDF 會沿用最後選擇
-• 譯文原位編輯：雙擊翻譯 PDF 的文字即可直接修改，失去焦點即儲存，並與段落圖卡雙向同步；目前文件內保留修改，重新翻譯會取代修改
 • 逐段翻譯：左側渲染原始 PDF、右側對照翻譯
 • 雙向定位：點翻譯 → 論文捲動並高亮原文；點原文 → 翻譯高亮
 • AI 摘要：以瀏覽器內建 AI 生成背景知識、相關研究、突破亮點、總結；2.0 會檢查輸出語言，必要時翻譯成目標語言
 • 反白問 AI：在論文中反白文字直接提問，並附上摘要與前後文作為上下文
-• 字卡編輯模式：雙擊譯文就地修改、重新分段
 • PDF 縮放優化（2.0）：依手勢幅度縮放、每幀合併更新，只補畫可見及附近頁面，並取消過期重繪；保留方向鍵翻頁、雙欄論文自動分欄
 • 版面分析分段（v1.6.0 新增）：以本機小模型辨識段落、標題、圖與表，圖表裡的文字不再混入翻譯，跨欄、跨頁斷開的段落自動接回，參考文獻一筆一段
 • PDF 暗黑模式（v1.6.0 新增）：右上角一鍵切成深色底、淺色字，圖表保留原本色調
@@ -100,19 +98,34 @@ https://github.com/aaaddress1/vibe-reading
 
 【遠端程式碼 Remote code】→ 請選「否，未使用遠端程式碼」
 本擴充未使用任何遠端程式碼。所有函式庫皆已封裝於擴充功能套件內（lib/ 目錄），不從遠端載入或執行程式碼：PDF.js（PDF 渲染）、onnxruntime-web 及其 WebAssembly 檔（lib/ort/）、PDF 版面分析模型 PP-DocLayout-S（lib/layout/，Apache-2.0）、tokenizers.js（lib/tokenizers/，Apache-2.0）、opencc-js 簡轉繁（lib/opencc/，MIT）。翻譯與 AI 功能使用 Chrome／Edge 瀏覽器內建 API，亦非遠端程式碼。
-本機翻譯模型（Opus-MT，CC-BY 4.0）的權重從 huggingface.co 下載，下載網址固定到特定版本。下載的只有 ONNX 模型權重與 JSON 設定檔等資料，由套件內附的 onnxruntime-web 執行，不含任何 JavaScript 或 WebAssembly 程式碼。
+本機翻譯模型（Opus-MT）的權重從 huggingface.co 下載，下載網址固定到特定版本。上游模型卡分別標示[英→中 Apache-2.0](https://huggingface.co/Helsinki-NLP/opus-mt-en-zh)及[中→英 CC-BY-4.0](https://huggingface.co/Helsinki-NLP/opus-mt-zh-en)；所用 Xenova ONNX 轉換版未另行宣告授權欄位。下載的只有 ONNX 模型權重與 JSON 設定檔等資料，由套件內附的 onnxruntime-web 執行，不含任何 JavaScript 或 WebAssembly 程式碼。
 manifest 的 extension_pages CSP 加入 'wasm-unsafe-eval'，僅用於在本機執行套件內附的 WebAssembly（onnxruntime-web），script-src 仍限定 'self'。
 （若表單仍要求文字理由，貼上上面這段即可。）
 
-## 截圖建議（需 1280×800 或 640×400，至少 1 張）
-1. 雙欄檢視器：左側 PDF + 右側翻譯（含頂部 AI 摘要卡）
-2. 一般網頁整頁翻譯：行內雙語對照 + 右下角翻譯球（建議用 arxiv 摘要頁或新聞頁）
-3. 翻譯球展開的控制面板（語言下拉、懸停開關、⚙、✕）
-4. 反白問 AI 的浮動面板
-5. 點翻譯 → 原文高亮定位
-擷取方式：開啟檢視器後用系統截圖，再用小畫家/線上工具裁切或加邊框到 1280×800。
+## 2.1 商城產品預覽圖（已製作）
 
-## 2.0 商城 Logo
+[整套圖片總覽](store/v2.1.0/preview.html) · [上傳指南](store/v2.1.0/UPLOAD-GUIDE.txt)
+
+繁中素材在 `store/v2.1.0/zh-TW/`，英文標題素材在 `store/v2.1.0/en/`。全部為 1280×800 PNG。
+
+| 順序 | 檔名前綴 | 展示功能 | 商店 |
+| --- | --- | --- | --- |
+| 1 | 01-layout | 保留圖表的 PDF 雙頁版面對照 | Chrome／Edge |
+| 2 | 02-paragraphs | 段落圖卡與原文定位高亮 | Chrome／Edge |
+| 3 | 03-summary-ask | 論文摘要、反白問答 | Chrome／Edge |
+| 4 | 04-web | 網頁行內雙語與翻譯球 | Chrome／Edge |
+| 5 | 05-themes | 炭黑、橘黑、粉黑閱讀配色 | Chrome／Edge |
+| 6 | 06-mobile-edge | 手機版面模擬預覽（非 Android 實拍） | Edge |
+
+畫面使用目前 2.1 介面與示範內容；譯文、摘要和問答回覆為預置範例，圖片內已註明。
+
+共用宣傳圖：`store/v2.1.0/shared/promo-small-440x280.png`、`store/v2.1.0/shared/promo-marquee-1400x560.png`。
+
+打包：`python scripts/package-store-media.py` → `vibe-reading-store-media-v2.1.0.zip`。
+
+規格依 [Chrome 官方圖片指南](https://developer.chrome.com/docs/webstore/images)（最多 5 張）與 [Edge 官方上架指南](https://learn.microsoft.com/en-us/microsoft-edge/extensions/publish/publish-extension)（最多 6 張）；本套 1280×800 尺寸可供兩邊使用。
+
+## 商城 Logo
 
 - Chrome：`store/logo-chrome-128.png`（128×128，96×96 圖案加透明留白）
 - Edge：`store/logo-edge-300.png`（300×300）

@@ -1,0 +1,13 @@
+{
+  "date": "2026-10-28",
+  "service": "DeepL website, signed out",
+  "url": "https://www.deepl.com/en/translator",
+  "inputFile": "comparison-en-1500.txt",
+  "inputCharacters": 1500,
+  "inputSha256": "533a695b6b1cc936847886c1c5746f6797e326ecda10f24eb64dc63bc08ad49f",
+  "source": "auto (English)",
+  "target": "Chinese (traditional)",
+  "completeTranslationMilliseconds": [3124, 3137, 3006],
+  "method": "Clear source using Delete source text, confirm cleared, time input fill until all four translated paragraphs and the final sentence are visible and result Copy to clipboard is available. Includes browser interaction and polling overhead; provider-side caching is unknown. Three repeated submissions of the same passage.",
+  "largerInputObservation": "At 2210 characters, the signed-out page translated only the first 1500 and displayed Only 1500 out of 2210 characters were translated."
+}

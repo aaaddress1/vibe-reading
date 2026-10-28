@@ -6,6 +6,7 @@ import json
 import re
 import struct
 import zipfile
+import runpy
 
 ROOT = Path(__file__).resolve().parents[1]
 manifest = json.loads((ROOT / 'manifest.json').read_text(encoding='utf-8'))
@@ -47,7 +48,7 @@ archive(package, [(ROOT / name, name) for name in runtime])
 with zipfile.ZipFile(package) as bundle:
     names = set(bundle.namelist())
     assert 'manifest.json' in names and 'pdf-overlay.js' in names
-    assert not any(n.startswith(('tests/', 'tmp/', '.git/')) for n in names)
+    assert not any(n.startswith(('tests/', 'tmp/', '.git/', 'desktop/')) for n in names)
     assert json.loads(bundle.read('manifest.json'))['version'] == version
     for group in manifest['content_scripts']:
         for name in group['js'] + group['css']:
@@ -65,14 +66,18 @@ for name, size in [('logo-chrome-128.png', 128), ('logo-edge-300.png', 300), ('l
     assert data[:8] == b'\x89PNG\r\n\x1a\n'
     assert struct.unpack('>II', data[16:24]) == (size, size)
 
+store_media = runpy.run_path(str(ROOT / 'scripts/package-store-media.py'))
+media_package = store_media['package']()
 brand_names = ['logo-chrome-128.png', 'logo-edge-300.png', 'logo-512.png',
                'reading-illustration.png', 'logo-prompt.txt', f'release-notes-v{version}.txt',
-               'pdf-layout-v2.1.png', 'pdf-inline-edit-v2.1.png']
+               'pdf-layout-v2.1.png']
 brand = ROOT / f'vibe-reading-brand-v{version}.zip'
-archive(brand, [(ROOT / 'store' / name, name) for name in brand_names])
+brand_entries = [(ROOT / 'store' / name, name) for name in brand_names]
+brand_entries += [(store_media['MEDIA'] / name, f'store-media/{name}') for name, _ in store_media['entries']()]
+archive(brand, brand_entries)
 checksums = ROOT / 'store' / f'checksums-v{version}.txt'
 checksums.write_text(''.join(hashlib.sha256(p.read_bytes()).hexdigest() + '  ' + p.name + '\n'
-                             for p in (package, brand)), encoding='utf-8')
+                             for p in (package, brand, media_package)), encoding='utf-8')
 print(json.dumps({'version': version, 'runtimeFiles': len(runtime),
                   'packageBytes': package.stat().st_size, 'brandBytes': brand.stat().st_size,
                   'checksums': str(checksums)}, ensure_ascii=False))

@@ -1,0 +1,6 @@
+這兩張請上傳至 Chrome / Edge 商城的「螢幕擷取畫面／Screenshots」欄位。
+規格：1280×800，24-bit RGB PNG，無透明色。原始圖片未覆寫。
+為保留完整工具列及兩側內容，整張畫面縮放至商城指定比例。
+小型宣傳圖與大型宣傳圖是不同欄位，分別使用 440×280 與 1400×560。
+https://developer.chrome.com/docs/webstore/images
+https://learn.microsoft.com/en-us/microsoft-edge/extensions/publish/publish-extension

@@ -1,5 +1,8 @@
 # Release packages
 *.zip
+*.msi
+*.wixpdb
+.wix/
 
 # OS / editor
 Thumbs.db
@@ -12,3 +15,15 @@ MEMORY.md
 
 # Local build tools
 tmp/
+
+# Independent desktop app: never part of the extension upload
+desktop/.venv/
+desktop/build/
+desktop/dist/
+desktop/preview/
+desktop/nuitka-crash-report.xml
+desktop/*.lnk
+desktop/*.egg-info/
+desktop/*.spec
+**/__pycache__/
+*.pyc

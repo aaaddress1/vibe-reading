@@ -1,0 +1,7 @@
+Scientific reading often requires moving between an original document and a translation. A useful tool should keep paragraphs, equations, and figures in a stable layout so that readers can check the meaning of a sentence without losing their place. The goal is to make a difficult paper easier to understand while preserving enough context for careful comparison.
+
+Local translation moves this work onto the reader's computer. After a model has been downloaded, the same text can be translated without sending its contents to a remote service. Performance still depends on the processor, available memory, model size, and the length of the output. A larger model may preserve more detail, but it also needs more time and memory.
+
+A fair speed comparison must use exactly the same source text and target language. It should distinguish the first model load from subsequent translation requests, and it should report the time until the entire translation is available. Measuring only the first sentence can hide a long wait for the remaining paragraphs. Cached results should be identified separately.
+
+Long passages are especially useful for finding problems that short examples miss. A translation system may divide the input into smaller sections, but it must preserve every section and keep the output in the original order. Negation, numerical values, and technical terms deserve particular attention because a fluent sentence can still express the wrong meaning. Translation must retain all facts

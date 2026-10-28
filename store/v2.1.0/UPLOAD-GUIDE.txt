@@ -1,0 +1,48 @@
+氛圍閱讀 Vibe Reading 2.1.0 — Chrome / Edge 商城圖片
+
+先開啟 preview.html 瀏覽整套素材，contact-sheet.png 是總覽。
+zh-TW/ 是繁體中文標題，en/ 是英文標題；兩套皆取自目前的產品介面。
+介面本身保留實際的中文標籤，英文版圖片沒有偽造英文版操作介面。
+
+Chrome Web Store
+• 選對應語言資料夾的 01–05，共 5 張，全部 1280×800。
+• 小型宣傳圖：shared/promo-small-440x280.png。
+• Marquee 宣傳圖：shared/promo-marquee-1400x560.png。
+• 商城圖示：shared/logo-chrome-128.png。擴充功能安裝包內也已包含圖示。
+
+Microsoft Edge Add-ons
+• 選對應語言資料夾的 01–06，共 6 張，全部 1280×800。
+• 小型／大型宣傳圖與 Chrome 共用，分別為 440×280、1400×560。
+• 商城 Logo：shared/logo-edge-300.png。
+• shared/logo-512.png 為共用高解析品牌圖示。
+
+預覽圖順序
+01-layout：PDF 原文／譯文雙頁對照，保留圖表。
+02-paragraphs：段落圖卡，點譯文定位並高亮原文。
+03-summary-ask：論文摘要與選取文字問答。
+04-web：網頁行內雙語翻譯與翻譯球。
+05-themes：炭黑／橘黑／粉黑閱讀配色。
+06-mobile-edge：Edge Android 使用情境的手機版面模擬預覽。
+
+示範內容說明
+• 圖片為目前 2.1 介面的實際渲染；文件、網頁與譯文為示範內容。
+• 03 使用預置摘要與問答回覆展示既有介面，並非裝置 AI 品質評測。
+• 06 為桌面瀏覽器在手機尺寸下的響應式畫面，非 Android 裝置實拍。
+• 圖片內已標示示範內容；06 另標示版面模擬。
+• 宣傳圖以既有品牌人物和 Logo 製作，兩個商店共用，不區分語言。
+
+規格依據（2026-10-27 查核）
+Chrome：最多 5 張，1280×800 或 640×400；宣傳圖 440×280、1400×560。
+https://developer.chrome.com/docs/webstore/images
+Edge：最多 6 張，1280×800 或 640×480；宣傳圖 440×280、1400×560。
+https://learn.microsoft.com/en-us/microsoft-edge/extensions/publish/publish-extension
+
+本包為上架素材，商城後台仍需自行替換圖片並提交審核。
+
+English quick guide
+• Chrome: upload screenshots 01–05 from the desired locale folder.
+• Edge: upload screenshots 01–06 from the desired locale folder.
+• Both stores: use the two language-neutral promotional tiles in shared/.
+• Chrome icon: 128×128. Edge logo: 300×300.
+• Sample translations and AI responses demonstrate the current interface.
+• Screenshot 06 is a responsive preview, not a real Android device capture.
