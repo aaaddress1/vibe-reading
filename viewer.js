@@ -21,6 +21,7 @@ const {
   localStatus,
   enginePreference,
   engineLabel,
+  withTimeout,
 } = window.VibeTranslate;
 
 // ─── DOM refs ─────────────────────────────────────────────────────────────────
@@ -114,6 +115,8 @@ let welcomeText   = null;
 let pdfOverlay    = null;
 let readingMode   = 'paragraphs';
 let paragraphPaneFlex = '';
+let viewerReady = Promise.resolve();
+let pdfLoading = false;
 
 const WELCOME_TEXT = {
   'zh-TW': {
@@ -245,7 +248,21 @@ const WELCOME_TEXT = {
 };
 
 // ─── Init ─────────────────────────────────────────────────────────────────────
-document.addEventListener('DOMContentLoaded', async () => {
+document.addEventListener('DOMContentLoaded', () => {
+  viewerReady = initializeViewer().catch(error => {
+    showError('檢視器初始化失敗：' + error.message);
+    setStatus('初始化失敗，請重新開啟檢視器。');
+  });
+});
+
+async function initializeViewer() {
+  // File selection is a user gesture. Bind it before any async AI/storage
+  // probes so Android's document picker is never blocked by engine startup.
+  setupOpenFile();
+  const params = new URLSearchParams(location.search);
+  pdfUrl = params.get('file');
+  const isWelcome = params.get('welcome') === '1';
+  if (!pdfUrl || /^content:/i.test(pdfUrl)) showOpenFilePrompt();
   try { els.appVer.textContent = 'v' + chrome.runtime.getManifest().version; } catch (_) {}
   document.querySelectorAll('.llm-name').forEach(el => { el.textContent = BROWSER.llm; });
   await populateTargetSelect();
@@ -256,7 +273,13 @@ document.addEventListener('DOMContentLoaded', async () => {
   setupReverseLocate();
   setupZoom();
   setupKeyboardScroll();
-  await setupReadingMode();
+  try { await setupReadingMode(); }
+  catch (error) {
+    console.warn('[氛圍閱讀] PDF 版面對照初始化失敗，保留段落對照：', error);
+    pdfOverlay = null;
+    els.pdfLayoutBtn.disabled = true;
+    els.pdfLayoutBtn.title = '版面對照初始化失敗，請重新開啟檢視器。';
+  }
 
   els.translateBtn.addEventListener('click', () => startTranslation(true));
   els.stopBtn.addEventListener('click', () => {
@@ -274,17 +297,16 @@ document.addEventListener('DOMContentLoaded', async () => {
     if (paragraphs.length) generateSummary();
   });
 
-  const params = new URLSearchParams(location.search);
-  pdfUrl = params.get('file');
-  const isWelcome = params.get('welcome') === '1';
   await setupFirstRunPrompt(isWelcome);
 
-  await checkAI();
+  // Badge detection is informational, never a prerequisite for opening PDFs.
+  void checkAI().catch(error => console.warn('[氛圍閱讀] 引擎偵測失敗：', error));
 
-  setupOpenFile();
-
-  if (!pdfUrl) {
-    showOpenFilePrompt();
+  if (!pdfUrl || /^content:/i.test(pdfUrl)) {
+    if (pdfUrl) {
+      setStatus('這是 Android 本機文件，請點「選擇 PDF 檔案」授權讀取同一份 PDF。');
+      return;
+    }
     setStatus(isWelcome
       ? welcomeText.noPdfWelcomeStatus
       : '未指定 PDF。請選擇 PDF 檔案，或開啟一個 PDF 分頁後點擊插件圖示。');
@@ -293,13 +315,15 @@ document.addEventListener('DOMContentLoaded', async () => {
 
   showPdfSource();
   await openPdf(async () => {
-    const resp = await fetch(pdfUrl);
+    const resp = await fetch(pdfUrl, { credentials: 'include', signal: AbortSignal.timeout(60000) });
     if (!resp.ok) throw new Error(`HTTP ${resp.status}（若為本機檔案，請到 ${BROWSER.scheme}://extensions 開啟「允許存取檔案網址」）`);
     return resp.arrayBuffer();
   });
-});
+}
 
 async function openPdf(loadBuffer) {
+  if (pdfLoading) return;
+  pdfLoading = true;
   try {
     await loadAndRenderPdf(loadBuffer);
     detectedSource = await detectSourceLang(paragraphs.slice(0, 5).map(p => p.text).join(' ').slice(0, 1000));
@@ -309,8 +333,19 @@ async function openPdf(loadBuffer) {
     // Requirement 4 — auto start translation
     if (!els.translateBtn.disabled) startTranslation(false);
   } catch (e) {
+    if (pdfDoc) await pdfDoc.destroy().catch(() => {});
+    pdfDoc = null;
+    paragraphs = [];
+    for (const key of Object.keys(pageWraps)) delete pageWraps[key];
+    pdfOverlay?.release();
+    showOpenFilePrompt();
+    els.translateBtn.disabled = true;
+    setIndeterminate(false);
+    els.progressWrap.style.display = 'none';
     showError('載入 PDF 失敗：' + e.message);
     setStatus('載入失敗');
+  } finally {
+    pdfLoading = false;
   }
 }
 
@@ -325,6 +360,7 @@ function setupOpenFile() {
   });
   els.fileInput.addEventListener('change', () => {
     const file = els.fileInput.files?.[0];
+    els.fileInput.value = ''; // selecting the same file again after an error fires change
     if (file) openPdfFile(file);
   });
   document.addEventListener('dragover', (e) => { if (!pdfDoc) e.preventDefault(); });
@@ -341,20 +377,21 @@ function showOpenFilePrompt() {
     <div class="open-pdf">
       <div class="open-pdf-icon">📄</div>
       <button type="button" class="btn btn-primary open-pdf-btn">📂 選擇 PDF 檔案</button>
-      <p>或把 PDF 拖曳到這裡</p>
+      <p>${BROWSER.isAndroid ? '從手機檔案或下載項目中選擇 PDF' : '或把 PDF 拖曳到這裡'}</p>
     </div>`;
   els.pdfInner.querySelector('.open-pdf-btn').addEventListener('click', () => els.fileInput.click());
 }
 
-function openPdfFile(file) {
-  if (pdfDoc) return;
+async function openPdfFile(file) {
+  await viewerReady;
+  if (pdfDoc || pdfLoading) return;
   pdfUrl = null;
   clearError();
   els.pdfSource.textContent = `📁 本機檔案：${file.name}`;
   els.pdfSource.title = file.name;
   els.pdfSource.onclick = null;
   document.title = file.name;
-  openPdf(() => file.arrayBuffer());
+  return openPdf(() => file.arrayBuffer());
 }
 
 function populateTargetSelect() {
@@ -442,7 +479,7 @@ async function probeTranslator(target) {
   if (!('Translator' in self)) return 'missing';
   const source = target === 'en' ? 'fr' : 'en';
   try {
-    const a = await Translator.availability({ sourceLanguage: source, targetLanguage: target });
+    const a = await withTimeout(Translator.availability({ sourceLanguage: source, targetLanguage: target }));
     return a === 'downloading' ? 'downloadable' : a;
   } catch (_) {
     return 'unavailable';
@@ -489,6 +526,15 @@ async function refreshAiStatus() {
   els.aiPromptStatus.textContent = t.aiPrompt[prompt];
   els.aiPromptStatus.className = `file-access-status ${okish(prompt) ? 'ok' : 'warn'}`;
 
+  if (BROWSER.isAndroid && !okish(prompt)) {
+    els.aiGuide.textContent = t.lang === 'en'
+      ? 'Translation uses the local model. AI summaries and Q&A require a browser-provided language model, which is not available on this device.'
+      : '翻譯使用本機模型。AI 摘要與問答需要瀏覽器提供語言模型，目前此裝置無法使用。';
+    els.aiGuide.hidden = false;
+    els.welcomeOpenFlags.hidden = true;
+    return;
+  }
+
   const g = t.guide[BROWSER.scheme === 'edge' ? 'edge' : 'chrome'];
   const tips = [];
   if (local?.supported) { /* the local model covers translation */ }
@@ -512,6 +558,13 @@ function saveWelcomeSettings() {
 }
 
 function refreshFileAccessStatus() {
+  if (BROWSER.isAndroid) {
+    els.fileAccessStatus.textContent = welcomeText.lang === 'en'
+      ? 'Use “Choose PDF file” to grant access to a document on your phone.'
+      : '點「選擇 PDF 檔案」，即可授權讀取手機上的文件。';
+    els.fileAccessStatus.className = 'file-access-status ok';
+    return;
+  }
   if (!chrome.extension?.isAllowedFileSchemeAccess) {
     els.fileAccessStatus.textContent = welcomeText.cannotCheckFileAccess;
     els.fileAccessStatus.className = 'file-access-status warn';
@@ -526,6 +579,7 @@ function refreshFileAccessStatus() {
 }
 
 function refreshShortcutStatus() {
+  if (BROWSER.isAndroid) return;
   if (!chrome.commands?.getAll) {
     els.shortcutStatus.textContent = welcomeText.shortcutUnknown;
     els.shortcutStatus.className = 'file-access-status warn';
@@ -574,6 +628,14 @@ function applyWelcomeText(text) {
   els.aiPromptStatus.textContent = text.checkingAiPrompt;
   els.welcomeOpenFlags.textContent = text.openFlags;
   els.welcomeAiRecheck.textContent = text.recheck;
+  if (BROWSER.isAndroid) {
+    els.welcomeFileCopy.textContent = text.lang === 'en'
+      ? 'Tap the folder button to choose a PDF from your phone. No file URL permission is needed for the file picker.'
+      : '點資料夾按鈕，從手機或下載項目選取 PDF；使用選檔功能不需要開啟檔案網址權限。';
+    els.welcomeOpenExt.hidden = true;
+    els.welcomeRecheck.hidden = true;
+    els.welcomeShortcutLabel.closest('.welcome-section').hidden = true;
+  }
 }
 
 // ─── Translation font-size control (persisted) ──────────────────────────────────
@@ -680,7 +742,7 @@ async function checkAI() {
 
   if (!forceLocal && 'Translator' in self) {
     try {
-      const a = await Translator.availability({ sourceLanguage: 'en', targetLanguage: target });
+      const a = await withTimeout(Translator.availability({ sourceLanguage: 'en', targetLanguage: target }));
       if (a !== 'unavailable') { badge.textContent = 'Translator API ✓'; badge.className = 'badge badge-ok'; return; }
     } catch (_) {}
   }
@@ -700,15 +762,15 @@ async function checkAI() {
   if (forceLocal) {
     badge.textContent = '本機模型不支援此語言';
     badge.className = 'badge badge-err';
-    els.translateBtn.disabled = true;
-    showError(`本機翻譯模型不支援翻譯成「${langName(target)}」。可改選其他目標語言，或到設定把翻譯引擎改回「自動」。`);
+    badge.title = `本機翻譯模型不支援翻譯成「${langName(target)}」。可改選其他目標語言，或到設定把翻譯引擎改回「自動」。`;
     return;
   }
 
   badge.textContent = 'AI 不可用';
   badge.className = 'badge badge-err';
-  els.translateBtn.disabled = true;
-  showError(BROWSER.scheme === 'edge'
+  badge.title = BROWSER.isAndroid
+    ? '本機翻譯引擎暫時無法連線。PDF 仍可開啟，請按「翻譯」重試。'
+    : (BROWSER.scheme === 'edge'
     ? 'Edge 內建 AI 無法使用。請確認：\n' +
       '1. Edge 版本 ≥ 148（翻譯與語言偵測）\n' +
       '2. AI 摘要與反白問答目前僅 Edge Canary / Dev 提供：到 edge://flags 啟用「Prompt API for on-device language model」\n' +
@@ -729,7 +791,8 @@ function isDownloadGestureError(err) {
 // ─── PDF source chip + tab title ─────────────────────────────────────────────────
 function showPdfSource() {
   const isFile = /^file:/i.test(pdfUrl);
-  const fname  = decodeURIComponent(pdfUrl.split('/').pop().split('?')[0]) || pdfUrl;
+  let fname = pdfUrl.split('/').pop().split('?')[0] || pdfUrl;
+  try { fname = decodeURIComponent(fname); } catch (_) {}
   els.pdfSource.textContent = isFile ? `📁 本機檔案：${fname}` : `🌐 ${pdfUrl}`;
   els.pdfSource.title = pdfUrl;
   els.pdfSource.onclick = () => window.open(pdfUrl, '_blank');
@@ -773,7 +836,7 @@ async function loadAndRenderPdf(loadBuffer) {
   pdfOverlay?.setDocument(pageWraps, paragraphs);
   pdfOverlay?.setScale(renderScale);
   pdfOverlay?.syncFrom(els.pdfPane);
-  els.pdfLayoutBtn.disabled = false;
+  els.pdfLayoutBtn.disabled = !pdfOverlay;
   updateZoomLabel();
 }
 
@@ -852,8 +915,21 @@ let layoutDisabled = false;
 async function detectLayout(canvas, renderVp, p, total) {
   if (layoutDisabled || !window.VibeLayout) return null;
   setStatus(`版面分析第 ${p} / ${total} 頁`);
+  let analysisCanvas = canvas;
   try {
-    const boxes = await window.VibeLayout.detect(canvas);
+    // A narrow two-page phone view can be less than 150px wide. Upscaling that
+    // thumbnail to the detector's 480px input loses text. Analyze a bounded,
+    // independent raster so saved reading mode/zoom cannot change extraction.
+    if (Math.max(canvas.width, canvas.height) < 960) {
+      const page = await pdfDoc.getPage(p);
+      const unit = page.getViewport({ scale: 1 });
+      renderVp = page.getViewport({ scale: 960 / Math.max(unit.width, unit.height) });
+      analysisCanvas = document.createElement('canvas');
+      analysisCanvas.width = Math.ceil(renderVp.width);
+      analysisCanvas.height = Math.ceil(renderVp.height);
+      await page.render({ canvasContext: analysisCanvas.getContext('2d'), viewport: renderVp }).promise;
+    }
+    const boxes = await window.VibeLayout.detect(analysisCanvas);
     if (!boxes) { layoutDisabled = true; return null; }
     return boxes.map(b => {
       const [ax, ay] = renderVp.convertToPdfPoint(b.x0, b.y0);
@@ -864,6 +940,8 @@ async function detectLayout(canvas, renderVp, p, total) {
   } catch (e) {
     console.warn('[氛圍閱讀] 版面分析失敗，改用規則分段：', e);
     return null;
+  } finally {
+    if (analysisCanvas !== canvas) analysisCanvas.width = analysisCanvas.height = 0;
   }
 }
 
@@ -1174,7 +1252,10 @@ function extractParagraphs(items, regions) {
   for (const r of skipBoxes) {
     if (['image', 'chart', 'table', 'algorithm'].includes(r.label)) units.push({ ...r, paras: [] });
   }
-  return orderUnits(units, its).flatMap(u => u.paras).map(markCaption);
+  const result = orderUnits(units, its).flatMap(u => u.paras).map(markCaption);
+  // A model false-negative must not turn a selectable PDF into a "scanned"
+  // document. Sparse/short prose is especially easy to mislabel on phones.
+  return result.length ? result : geometricParagraphs(its, 'text');
 }
 
 // Sentence-like text: 8+ tokens that are mostly words and few code symbols, or
@@ -2007,11 +2088,13 @@ function reverseLocate(idx, para) {
 
 // ─── Selection → ask Gemini Nano (requirement 6) ─────────────────────────────────
 function setupSelectionAsk() {
-  els.pdfPane.addEventListener('mouseup', () => {
-    setTimeout(() => {
+  let selectionTimer;
+  const updateSelection = () => {
+    clearTimeout(selectionTimer);
+    selectionTimer = setTimeout(() => {
       const sel = window.getSelection();
       const text = sel ? sel.toString().trim() : '';
-      if (text.length >= 2 && sel.rangeCount) {
+      if (text.length >= 2 && sel.rangeCount && els.pdfInner.contains(sel.anchorNode)) {
         selectedText = text;
         const r = sel.getRangeAt(0).getBoundingClientRect();
         els.askFloat.style.display = '';
@@ -2021,7 +2104,10 @@ function setupSelectionAsk() {
         els.askFloat.style.display = 'none';
       }
     }, 10);
-  });
+  };
+  els.pdfPane.addEventListener('mouseup', updateSelection);
+  // Android selection handles do not reliably generate mouseup events.
+  document.addEventListener('selectionchange', updateSelection);
 
   els.pdfPane.addEventListener('scroll', () => { els.askFloat.style.display = 'none'; });
 

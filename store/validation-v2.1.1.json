@@ -1,0 +1,109 @@
+{
+  "version": "2.1.1",
+  "validation_date": "2026-11-03",
+  "status": "release approved; reporting user confirmed the original Edge mobile problem is fixed",
+  "package": "vibe-reading-store-v2.1.1.zip",
+  "sha256": "8042274af5994b0557f1efc85608dd0bf5679712443e497ed38108ecea5d76a7",
+  "environment": "Chrome for Testing; Android UA, touch, 393x851, DPR 3; NOT physical Edge Android",
+  "unit_tests": {
+    "command": "node --test tests/*.test.cjs",
+    "passed": 55
+  },
+  "browser_tests": {
+    "command": "node tests/mobile-browser.cjs",
+    "passed": 16,
+    "tested_packaged_extension": true,
+    "checks": [
+      {
+        "name": "touch file picker loads a real two-page local PDF",
+        "passed": true
+      },
+      {
+        "name": "real Opus-MT model downloads/loads and translates local PDF into Chinese",
+        "passed": true,
+        "detail": [
+          "本檔案載有文本和圖表。",
+          "本檔案載有文本和圖表。"
+        ]
+      },
+      {
+        "name": "mobile PDF layout, zoom, paragraph mode and language switch",
+        "passed": true
+      },
+      {
+        "name": "PDF touch selectionchange opens selection translation without mouseup",
+        "passed": true
+      },
+      {
+        "name": "Android settings do not require desktop file permissions or shortcuts",
+        "passed": true
+      },
+      {
+        "name": "remote PDF opens and auto-translates using downloaded model",
+        "passed": true
+      },
+      {
+        "name": "Android content URI presents an authorized system file-picker path",
+        "passed": true
+      },
+      {
+        "name": "HTTP error / invalid PDF recover with same-name local file import",
+        "passed": true
+      },
+      {
+        "name": "website touch translation, toolbar routing, toggle off/on",
+        "passed": true,
+        "detail": [
+          "研究",
+          "研究机器翻译",
+          "本文件载有文本和图表。"
+        ]
+      },
+      {
+        "name": "cancel during engine preparation does not restart page translation",
+        "passed": true
+      },
+      {
+        "name": "native preview of extensionless PDF routes to translated PDF",
+        "passed": true
+      },
+      {
+        "name": "file import and PDF rendering remain available with an unresponsive model service",
+        "passed": true
+      },
+      {
+        "name": "missing ResizeObserver does not disable file import or dual-page PDF",
+        "passed": true
+      },
+      {
+        "name": "downloaded model translates local PDF offline",
+        "passed": true
+      },
+      {
+        "name": "reopening in saved dual-page mode preserves the same PDF text as paragraph mode",
+        "passed": true
+      },
+      {
+        "name": "no uncaught JavaScript errors",
+        "passed": true
+      }
+    ]
+  },
+  "physical_android": {
+    "tested": true,
+    "tester": "reporting user",
+    "confirmation": "OK修好了 幫我發布吧 主要問題就是修edge for mobile bug",
+    "scope": "User confirmation of the originally reported problem; device and Edge version were not supplied.",
+    "agent_device_tested": false
+  },
+  "limitations": [
+    "Mobile viewport, touch and API fault simulation do not reproduce every Edge Android implementation detail.",
+    "Android document-provider PDFs require system file selection; direct access to a browser-owned content URI is not assumed.",
+    "AI summary and Q&A depend on a browser-provided language model; local machine translation does not implement those capabilities.",
+    "User confirmation does not establish compatibility with every Edge Android version or device."
+  ],
+  "references": [
+    "https://learn.microsoft.com/en-us/microsoft-edge/extensions/developer-guide/api-support",
+    "https://chromium.googlesource.com/experimental/chromium/src/+/refs/heads/main/chrome/browser/android/tab_web_contents_delegate_android.cc"
+  ]
+}

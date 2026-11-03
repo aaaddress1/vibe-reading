@@ -7,6 +7,12 @@ import re
 import struct
 import zipfile
 import runpy
+import argparse
+import posixpath
+
+parser = argparse.ArgumentParser(description=__doc__)
+parser.add_argument('--extension-only', action='store_true', help='Build a runtime patch without regenerating store artwork')
+args = parser.parse_args()
 
 ROOT = Path(__file__).resolve().parents[1]
 manifest = json.loads((ROOT / 'manifest.json').read_text(encoding='utf-8'))
@@ -17,7 +23,7 @@ if not re.fullmatch(r'\d+\.\d+\.\d+', version):
 runtime = [
     'manifest.json', 'background.js', 'content.js', 'content.css', 'translate-core.js',
     'layout.js', 'local-mt.js', 'options.html', 'options.js', 'viewer.html', 'viewer.js',
-    'viewer.css', 'pdf-overlay.js', 'theme.css', 'theme.js', 'LICENSE',
+    'viewer.css', 'pdf-overlay.js', 'pdf-source.js', 'tab-actions.js', 'theme.css', 'theme.js', 'LICENSE',
 ]
 runtime += ['icons/' + name for name in (
     'icon16.png', 'icon48.png', 'icon128.png', 'store-icon-128.png', 'author-avatar.webp', 'busy.svg')]
@@ -60,6 +66,21 @@ with zipfile.ZipFile(package) as bundle:
         refs.feed(bundle.read(name).decode('utf-8'))
         for ref in refs.paths:
             assert ref in names, f'{name}: missing {ref}'
+    # Check static module imports too: a missing background dependency disables
+    # every toolbar action and the shared local translation engine.
+    for name in names:
+        if name.endswith(('.js', '.mjs')):
+            source = bundle.read(name).decode('utf-8')
+            for ref in re.findall(r'''(?:from\s*|import\s*)['"](\.[^'"]+)['"]''', source):
+                target = posixpath.normpath(posixpath.join(posixpath.dirname(name), ref))
+                assert target in names, f'{name}: missing module {target}'
+
+if args.extension_only:
+    checksum = ROOT / 'store' / f'checksums-v{version}.txt'
+    checksum.write_text(hashlib.sha256(package.read_bytes()).hexdigest() + '  ' + package.name + '\n', encoding='utf-8')
+    print(json.dumps({'version': version, 'runtimeFiles': len(runtime), 'packageBytes': package.stat().st_size,
+                      'checksums': str(checksum)}, ensure_ascii=False))
+    raise SystemExit(0)
 
 for name, size in [('logo-chrome-128.png', 128), ('logo-edge-300.png', 300), ('logo-512.png', 512)]:
     data = (ROOT / 'store' / name).read_bytes()

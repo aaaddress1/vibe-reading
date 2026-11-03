@@ -1,0 +1,22 @@
+氛圍閱讀 v2.1.1 · 修復 Edge for mobile
+
+本次更新主要修復 Edge Android 的翻譯與 PDF 使用問題，回報使用者已確認原問題修復。
+
+- 修復本機 PDF 選檔被翻譯引擎偵測阻塞。
+- 修復網頁與正在預覽的 PDF 翻譯入口，補齊原生 PDF 預覽網址及無副檔名 PDF 的辨識。
+- 修復手機雙頁對照模式將有文字的 PDF 誤判為沒有可翻譯內容。
+- 改善手機反白翻譯、PDF 載入失敗後重新選檔，以及取消翻譯的行為。
+- 加強手機 API 相容性、引擎無回應與連線中斷時的處理。
+
+下載
+- vibe-reading-store-v2.1.1.zip：Chrome／Edge 商城上傳套件；桌面開發模式可解壓縮後載入。
+- vibe-reading-v2.1.1.crx：手機本機安裝用套件，需瀏覽器提供「Extension install by crx」入口。
+- vibe-reading-v2.1.1.bin：與 CRX 相同內容；若手機瀏覽器攔截 CRX 下載，可下載此檔後在檔案管理員改為 .crx。
+- checksums-v2.1.1.txt：下載檔案的 SHA-256 校驗碼。
+
+驗證：55 項回歸測試、16 項打包後瀏覽器檢查通過，涵蓋實際本機模型與離線翻譯；回報使用者另已確認手機上的原問題修復。自動測試使用手機尺寸與觸控模擬，沒有宣稱涵蓋所有 Android 裝置。
+
+GitHub 版本已發布；Chrome／Edge 商城送審及更新進度分開。
+
+English
+This patch focuses on Edge for mobile (Android): local PDF import, webpage and PDF-preview translation, text extraction in narrow dual-page mode, touch selection, retry and cancellation, and translation-service resilience. The reporting user confirmed that the original problem is fixed. Automated validation passed 55 regression tests and 16 packaged-browser checks, including real local-model inference and offline translation.

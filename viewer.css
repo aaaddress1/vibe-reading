@@ -59,7 +59,7 @@ body {
 .t-left  { display: flex; align-items: center; gap: 6px; flex-shrink: 0; }
 .t-center { flex: 1; display: flex; align-items: center; justify-content: center; gap: 10px; min-width: 0; padding: 0 8px; }
 .source-row { display: flex; align-items: center; justify-content: center; gap: 6px; min-width: 0; max-width: 50%; }
-.source-row .icon-btn { width: 18px; height: 18px; font-size: 11px; background: transparent; border-color: transparent; }
+.source-row .icon-btn { width: 32px; height: 32px; flex-shrink: 0; font-size: 16px; }
 .t-right { display: flex; align-items: center; gap: 4px; flex-shrink: 0; }
 
 .pdf-source {
@@ -551,6 +551,8 @@ body.pdf-dark .pdf-overlay-layer { filter: invert(0.9) hue-rotate(180deg); }
   .divider { display: none; }
   .trans-pane { flex: 1; padding: 10px; border-top: 2px solid var(--border); }
   .zoom-ctrl { left: auto; right: 10px; bottom: auto; top: calc(45vh + 40px); padding: 2px 6px; }
+  body.pdf-layout-mode .zoom-ctrl { top: auto; bottom: 12px; }
+  .source-row .icon-btn, .zoom-btn { min-width: 36px; min-height: 36px; }
 }
 
 /* A distinct activity indicator; the reading mascot remains the brand mark. */

@@ -1,4 +1,10 @@
-# Chrome Web Store / Edge Add-ons 上架文案（v2.1.0，直接複製貼上）
+# Chrome Web Store / Edge Add-ons 上架文案（v2.1.1，直接複製貼上）
+
+## v2.1.1 更新說明
+
+修復 Edge for mobile（Android）的本機 PDF 匯入、網頁與 PDF 預覽翻譯入口，以及手機雙頁對照模式誤判沒有文字的問題。改善反白翻譯、失敗重試、取消操作與翻譯引擎連線穩定性。
+
+Fixes Edge for mobile (Android): local PDF import, webpage and PDF-preview translation, and missing text in narrow dual-page mode. Improves touch selection, retries, cancellation and translation-service reliability.
 
 ## 名稱 (Name)
 氛圍閱讀 Vibe Reading — 離線翻譯 PDF 與網頁

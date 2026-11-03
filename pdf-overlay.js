@@ -77,10 +77,15 @@
         }
         if (e.ctrlKey) { e.preventDefault(); onZoom(e); }
       }, { passive: false });
-      this.resizeObserver = new ResizeObserver(() => {
+      const resized = () => {
         if (this.enabled) { this.syncFrom(sourcePane); this.schedule(); }
-      });
-      this.resizeObserver.observe(pane);
+      };
+      if (typeof ResizeObserver === 'function') {
+        this.resizeObserver = new ResizeObserver(resized);
+        this.resizeObserver.observe(pane);
+      } else {
+        root.addEventListener('resize', resized);
+      }
       document.fonts?.ready.then(() => this.refit());
     }
 

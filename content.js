@@ -15,6 +15,9 @@
 //   • Hover                — translate the block under the cursor (toolbar toggle).
 // ─────────────────────────────────────────────────────────────────────────────
 (function () {
+  if (document.contentType === 'application/pdf' ||
+      (document.querySelector('embed[type="application/pdf"], object[type="application/pdf"]') &&
+       !document.querySelector('article, main, p, h1, h2'))) return;
   if (window.__vibeReadingContent) return; // already injected — existing listener handles messages
   window.__vibeReadingContent = true;
 
@@ -148,21 +151,23 @@
     return translator;
   }
 
-  async function translateEl(el, signal) {
+  async function translateEl(el, signal, engine = translator) {
+    if (signal?.aborted) return;
     if (!shouldTranslate(el)) return;
     el.setAttribute(TRANSLATED_ATTR, 'pending');
     const original = (el.innerText || '').trim();
     const node = makeInlineNode('翻譯中…', true);
     placeInline(el, node);
     try {
-      const out = await VT.doTranslate(translator, original);
-      if (signal && signal.aborted) { node.remove(); el.removeAttribute(TRANSLATED_ATTR); return; }
+      const out = await VT.doTranslate(engine, original);
+      if (signal && signal.aborted) { node.remove(); return; }
       node.textContent = out;
       node.classList.remove('vibe-loading');
       el.setAttribute(TRANSLATED_ATTR, '1');
       translatedCount++;
       status(`已翻譯 ${translatedCount} 段`);
     } catch (e) {
+      if (signal?.aborted) { node.remove(); return; }
       node.textContent = `[翻譯失敗] ${e.message || e}`;
       node.classList.remove('vibe-loading');
       node.classList.add('vibe-error');
@@ -175,13 +180,15 @@
   function pump() {
     if (!abortCtrl || abortCtrl.signal.aborted) return;
     const max = translator && translator.type !== 'translator' ? 1 : 4;
+    const run = abortCtrl, engine = translator;
     while (activeWorkers < max && queue.length) {
       const el = queue.shift();
       activeWorkers++;
       Promise.resolve()
-        .then(() => translateEl(el, abortCtrl.signal))
+        .then(() => translateEl(el, run.signal, engine))
         .catch(() => {})
         .finally(async () => {
+          if (abortCtrl !== run || run.signal.aborted) return;
           activeWorkers--;
           if ((translatedCount & 7) === 0) await yieldIdle();
           pump();
@@ -215,14 +222,20 @@
   }
 
   async function startTranslation() {
-    abortCtrl = new AbortController();
+    const run = new AbortController();
+    abortCtrl = run;
     translatedCount = 0;
     try {
       await ensureEngine(currentTarget());
     } catch (e) {
+      if (abortCtrl !== run || run.signal.aborted) return;
       status('AI 不可用：' + (e.message || e));
+      pageActive = false;
+      abortCtrl = null;
+      updateToolbarState();
       return;
     }
+    if (abortCtrl !== run || run.signal.aborted) return;
     io = new IntersectionObserver(onIntersect, { rootMargin: '600px 0px' });
     observeAll(document.body);
     mo = new MutationObserver(onMutations);
@@ -442,9 +455,9 @@
   }
 
   // ─── Message handling (single listener; guarded against re-injection) ───────────
-  chrome.runtime.onMessage.addListener((msg) => {
+  chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
     if (!msg) return;
-    if (msg.type === 'VIBE_TOGGLE_PAGE') { ensureToolbar(); togglePage(); }
+    if (msg.type === 'VIBE_TOGGLE_PAGE') { ensureToolbar(); togglePage(); sendResponse({ handled: true }); }
     else if (msg.type === 'VIBE_TRANSLATE_SELECTION') { translateSelection(msg.text); }
     else if (msg.type === 'VIBE_ENABLE_HOVER') {
       ensureToolbar();

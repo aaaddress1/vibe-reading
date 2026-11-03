@@ -14,6 +14,7 @@
 // viewer.js is loaded via a classic <script> tag.
 // ─────────────────────────────────────────────────────────────────────────────
 (function () {
+  if (window.VibeTranslate) return;
   // ─── Target-language options ──────────────────────────────────────────────
   const TARGET_LANGS = [
     { code: 'zh-Hant', name: '繁體中文' },
@@ -44,10 +45,18 @@
   // ─── Browser branding ───────────────────────────────────────────────────────
   // Same extension APIs on Chrome and Edge; only settings-page URLs and the
   // built-in language model behind the Prompt API differ.
-  const IS_EDGE = /\bEdg\//.test(navigator.userAgent);
+  const IS_EDGE = /\bEdg(?:A|iOS)?\//.test(navigator.userAgent);
+  const IS_ANDROID = /Android/i.test(navigator.userAgent);
   const BROWSER = IS_EDGE
-    ? { name: 'Edge',   scheme: 'edge',   llm: 'Edge 內建 AI', llmSize: '' }
-    : { name: 'Chrome', scheme: 'chrome', llm: 'Gemini Nano', llmSize: '（約 2.4GB）' };
+    ? { name: 'Edge',   scheme: 'edge',   llm: 'Edge 內建 AI', llmSize: '', isAndroid: IS_ANDROID }
+    : { name: 'Chrome', scheme: 'chrome', llm: 'Gemini Nano', llmSize: '（約 2.4GB）', isAndroid: IS_ANDROID };
+
+  function withTimeout(promise, ms = 5000) {
+    let timer;
+    return Promise.race([promise, new Promise((_, reject) => {
+      timer = setTimeout(() => reject(new Error('瀏覽器功能偵測逾時，請重試。')), ms);
+    })]).finally(() => clearTimeout(timer));
+  }
 
   // ─── Prompt API wrappers ────────────────────────────────────────────────────
   // samplingMode keeps sessions compatible with Chrome's MTP speculative
@@ -63,13 +72,13 @@
   async function lmAvailability() {
     if (lmUseSampling !== false) {
       try {
-        const a = await LanguageModel.availability(LM_SAMPLING);
+        const a = await withTimeout(LanguageModel.availability(LM_SAMPLING));
         if (a !== 'unavailable') { lmUseSampling = true; return a; }
       } catch (e) {
         if (!isOptionRejection(e)) throw e;
       }
     }
-    const a = await LanguageModel.availability();
+    const a = await withTimeout(LanguageModel.availability());
     if (a !== 'unavailable') lmUseSampling = false;
     return a;
   }
@@ -161,7 +170,7 @@
     if (!sample) return 'en';
     if ('LanguageDetector' in self) {
       try {
-        const avail = await LanguageDetector.availability();
+        const avail = await withTimeout(LanguageDetector.availability());
         if (avail === 'available') {
           const det = await LanguageDetector.create();
           const res = await det.detect(sample);
@@ -174,7 +183,7 @@
       } catch (e) {
         console.warn('[氛圍閱讀] 語言偵測失敗，預設 en：', e);
       }
-      return 'en';
+      return guessLang(sample);
     }
     return guessLang(sample);
   }
@@ -191,14 +200,17 @@
     mtPort.onMessage.addListener((m) => {
       const job = mtPending.get(m.id);
       if (!job) return;
-      if (m.progress) { job.onProgress?.(m.progress); return; }
+      if (m.progress) { job.touch(); job.onProgress?.(m.progress); return; }
       mtPending.delete(m.id);
+      clearTimeout(job.timer);
       if (m.error) job.reject(new Error(m.error));
       else job.resolve(m.result);
     });
     mtPort.onDisconnect.addListener(() => {
+      void chrome.runtime.lastError;
       mtPort = null;
       for (const job of mtPending.values()) {
+        clearTimeout(job.timer);
         const err = new Error('本機翻譯引擎中斷');
         err.name = 'LocalEngineDisconnected';
         job.reject(err);
@@ -211,8 +223,19 @@
   function mtCall(msg, onProgress) {
     return new Promise((resolve, reject) => {
       const id = ++mtSeq;
-      mtPending.set(id, { resolve, reject, onProgress });
-      mtConnect().postMessage({ ...msg, id });
+      const job = { resolve, reject, onProgress, timer: null, touch() {
+        clearTimeout(job.timer);
+        job.timer = setTimeout(() => {
+          mtPending.delete(id);
+          const error = new Error('本機翻譯引擎未回應，請再按一次翻譯重試。');
+          error.name = 'LocalEngineTimeout';
+          reject(error);
+        }, msg.op === 'status' ? 10000 : 180000);
+      } };
+      mtPending.set(id, job);
+      job.touch();
+      try { mtConnect().postMessage({ ...msg, id }); }
+      catch (error) { clearTimeout(job.timer); mtPending.delete(id); reject(error); }
     });
   }
 
@@ -276,7 +299,7 @@
 
     if (!forceLocal && 'Translator' in self) {
       try {
-        const avail = await Translator.availability({ sourceLanguage: sourceLang, targetLanguage: targetLang });
+        const avail = await withTimeout(Translator.availability({ sourceLanguage: sourceLang, targetLanguage: targetLang }));
         if (avail !== 'unavailable') {
           builtinPossible = true;
           if (needsDownloadGesture(avail) && !isManual) {
@@ -304,28 +327,33 @@
     }
 
     if (!forceLocal && 'LanguageModel' in self) {
-      const avail = await lmAvailability();
-      if (avail !== 'unavailable') {
-        builtinPossible = true;
-        if (needsDownloadGesture(avail) && !isManual) {
-          downloadNeedsGesture = true;
-        } else {
-          onStatus(`首次使用：載入 ${BROWSER.llm} 模型${BROWSER.llmSize}...`);
-          onIndeterminate(true);
-          const targetName = langName(targetLang);
-          const session = await lmCreate({
-            initialPrompts: [{ role: 'system', content: translationSystemPrompt(targetLang) }],
-            monitor(m) {
-              m.addEventListener('downloadprogress', (e) => {
-                const pct = Math.round(e.loaded * 100);
-                onStatus(`下載 ${BROWSER.llm} 模型 ${pct}%（僅首次）...`);
-                onProgress(e.loaded, `${pct}%`);
-              });
-            },
-          });
-          onIndeterminate(false);
-          return { type: 'lm', session, targetName };
+      try {
+        const avail = await lmAvailability();
+        if (avail !== 'unavailable') {
+          builtinPossible = true;
+          if (needsDownloadGesture(avail) && !isManual) {
+            downloadNeedsGesture = true;
+          } else {
+            onStatus(`首次使用：載入 ${BROWSER.llm} 模型${BROWSER.llmSize}...`);
+            onIndeterminate(true);
+            const targetName = langName(targetLang);
+            const session = await lmCreate({
+              initialPrompts: [{ role: 'system', content: translationSystemPrompt(targetLang) }],
+              monitor(m) {
+                m.addEventListener('downloadprogress', (e) => {
+                  const pct = Math.round(e.loaded * 100);
+                  onStatus(`下載 ${BROWSER.llm} 模型 ${pct}%（僅首次）...`);
+                  onProgress(e.loaded, `${pct}%`);
+                });
+              },
+            });
+            onIndeterminate(false);
+            return { type: 'lm', session, targetName };
+          }
         }
+      } catch (e) {
+        console.warn('[氛圍閱讀] 內建語言模型無法使用，嘗試本機翻譯：', e);
+        builtinPossible = false;
       }
     }
 
@@ -424,7 +452,7 @@
   async function checkAvailability(targetLang) {
     if ('Translator' in self) {
       try {
-        const a = await Translator.availability({ sourceLanguage: 'en', targetLanguage: targetLang });
+        const a = await withTimeout(Translator.availability({ sourceLanguage: 'en', targetLanguage: targetLang }));
         if (a !== 'unavailable') return { ok: true, engine: 'Translator API' };
       } catch (_) {}
     }
@@ -452,5 +480,6 @@
     localStatus,
     enginePreference,
     engineLabel,
+    withTimeout,
   };
 })();

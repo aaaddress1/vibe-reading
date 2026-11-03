@@ -1,4 +1,5 @@
 import * as localMT from './local-mt.js';
+import { handleTrigger, translateSelection, enableHover } from './tab-actions.js';
 
 const MENU_PAGE      = 'vibe-translate-page';
 const MENU_SELECTION = 'vibe-translate-selection';
@@ -6,94 +7,9 @@ const MENU_HOVER     = 'vibe-translate-hover';
 const MENU_SHOW_BALL = 'vibe-show-ball';
 const MENU_OPTIONS   = 'vibe-options';
 
-// ─── Open the two-pane PDF translation viewer for a given tab ──────────────────
-async function openViewer(tab) {
-  let viewer = chrome.runtime.getURL('viewer.html');
-  if (tab?.url && isPdf(tab.url)) {
-    viewer += '?file=' + encodeURIComponent(tab.url);
-  }
-  await chrome.tabs.create({ url: viewer });
-}
-
-function isPdf(url) {
-  try {
-    const path = new URL(url).pathname;
-    return /\.pdf(\?.*)?$/i.test(path) || /\/pdf\/[^/]+$/i.test(path);
-  } catch {
-    return false;
-  }
-}
-
-// Pages we can inject a content script into. chrome://, edge://, chrome-extension://,
-// devtools://, about:, view-source: and the extension stores are off-limits; file://
-// only works when the user enabled "Allow access to file URLs" (we still try
-// and fall back on failure).
-function canInject(url) {
-  if (!/^(https?|file):/i.test(url)) return false;
-  if (/^https?:\/\/(chrome\.google\.com\/webstore|chromewebstore\.google\.com)/i.test(url)) return false;
-  if (/^https?:\/\/microsoftedge\.microsoft\.com\/addons/i.test(url)) return false;
-  return true;
-}
-
-// ─── Trigger router ─────────────────────────────────────────────────────────────
-// PDF → open the dedicated viewer (unchanged behaviour).
-// Normal web page → inject the in-page translator and toggle it.
-// Anything we can't inject into → fall back to the viewer (it shows guidance).
-async function handleTrigger(tab) {
-  if (!tab || !tab.id) return;
-  const url = tab.url || '';
-  if (isPdf(url)) return openViewer(tab);
-  if (!canInject(url)) return openViewer(tab);
-  // The content script is normally already present (static content_scripts), so
-  // message it directly; only fall back to injecting for tabs opened before the
-  // extension was installed/updated.
-  try {
-    await chrome.tabs.sendMessage(tab.id, { type: 'VIBE_TOGGLE_PAGE' });
-  } catch (_) {
-    try {
-      await injectInto(tab.id);
-      await chrome.tabs.sendMessage(tab.id, { type: 'VIBE_TOGGLE_PAGE' });
-    } catch (e) {
-      console.warn('[氛圍閱讀] 內容腳本注入失敗，改開檢視器：', e);
-      openViewer(tab);
-    }
-  }
-}
-
-// Inject the shared engine + content script (+ styles). Idempotent: re-running
-// is cheap and content.js guards against double-initialisation.
-async function injectInto(tabId) {
-  await chrome.scripting.insertCSS({ target: { tabId }, files: ['theme.css', 'content.css'] });
-  await chrome.scripting.executeScript({
-    target: { tabId },
-    files: ['theme.js', 'translate-core.js', 'content.js'],
-  });
-}
-
-async function translateSelection(tab, text) {
-  if (!tab?.id || !canInject(tab.url || '')) return;
-  try {
-    await injectInto(tab.id);
-    await chrome.tabs.sendMessage(tab.id, { type: 'VIBE_TRANSLATE_SELECTION', text: text || '' });
-  } catch (e) {
-    console.warn('[氛圍閱讀] 選取翻譯注入失敗：', e);
-  }
-}
-
-// Enable hover-translate WITHOUT translating the whole page.
-async function enableHover(tab) {
-  if (!tab?.id || !canInject(tab.url || '')) return;
-  try {
-    await injectInto(tab.id);
-    await chrome.tabs.sendMessage(tab.id, { type: 'VIBE_ENABLE_HOVER' });
-  } catch (e) {
-    console.warn('[氛圍閱讀] 懸停翻譯注入失敗：', e);
-  }
-}
-
 // ─── Context menu (right-click) ────────────────────────────────────────────────
 function setupMenu() {
-  if (!chrome.contextMenus) return;   // not available on mobile (Edge for Android)
+  if (!chrome.contextMenus?.removeAll || !chrome.contextMenus?.create) return;
   chrome.contextMenus.removeAll(() => {
     // contexts:['all'] so the PDF native viewer (whose frame URL is a
     // chrome-extension:// address) still surfaces the entry; handleTrigger
@@ -149,7 +65,7 @@ chrome.runtime.onInstalled.addListener((details) => {
 });
 chrome.runtime.onStartup.addListener(setupMenu);
 
-chrome.contextMenus?.onClicked.addListener((info, tab) => {
+chrome.contextMenus?.onClicked?.addListener((info, tab) => {
   if (info.menuItemId === MENU_PAGE) handleTrigger(tab);
   else if (info.menuItemId === MENU_SELECTION) translateSelection(tab, info.selectionText);
   else if (info.menuItemId === MENU_HOVER) enableHover(tab);
@@ -163,10 +79,10 @@ chrome.runtime.onMessage.addListener((msg) => {
 });
 
 // ─── Toolbar icon click ─────────────────────────────────────────────────────────
-chrome.action?.onClicked.addListener(handleTrigger);
+chrome.action?.onClicked?.addListener(tab => handleTrigger(tab).catch(console.error));
 
 // ─── Keyboard shortcuts (customizable in the browser's extension settings) ───
-chrome.commands?.onCommand.addListener(async (command) => {
+chrome.commands?.onCommand?.addListener(async (command) => {
   if (command !== 'translate-pdf' && command !== 'translate-selection') return;
   const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
   if (!tab) return;
@@ -185,7 +101,10 @@ let mtKeepAlive = null;
 // An extension service worker is stopped after ~30s without extension events or
 // API calls; a long download or a slow phone can exceed that mid-job.
 function mtJobStarted() {
-  if (mtBusy++ === 0) mtKeepAlive = setInterval(() => chrome.runtime.getPlatformInfo(), 20e3);
+  if (mtBusy++ === 0) mtKeepAlive = setInterval(() => {
+    // Storage is supported on Android, including builds without platform info.
+    chrome.storage.local.get('engine').catch(() => {});
+  }, 20e3);
 }
 function mtJobEnded() {
   if (--mtBusy === 0) clearInterval(mtKeepAlive);
@@ -210,8 +129,17 @@ chrome.runtime.onConnect.addListener((port) => {
   if (port.name !== 'vibe-mt') return;
   let open = true;
   port.onDisconnect.addListener(() => { open = false; });
-  const post = (m) => { if (open) port.postMessage(m); };
+  const post = (m) => {
+    if (open) try { port.postMessage(m); } catch (_) { open = false; }
+  };
   port.onMessage.addListener((msg) => {
+    // Capability checks must not wait behind model loading or another tab's
+    // translation. Otherwise opening a PDF appears completely unresponsive.
+    if (msg.op === 'status') {
+      runMtJob(msg, post).then(result => post({ id: msg.id, result }),
+        e => post({ id: msg.id, error: e?.message || String(e) }));
+      return;
+    }
     mtChain = mtChain.then(async () => {
       if (!open) return;
       mtJobStarted();
